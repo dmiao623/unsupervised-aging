@@ -3,7 +3,8 @@ import pandas as pd
 
 from copy import deepcopy
 from sklearn.base import BaseEstimator, clone
-from sklearn.model_selection import BaseCrossValidator, BaseSearchCV
+from sklearn.model_selection import BaseCrossValidator, GroupKFold
+from sklearn.model_selection._search import BaseSearchCV
 from sklearn.utils.validation import check_is_fitted
 from tqdm.auto import tqdm
 from typing import Any, Callable, Mapping, MutableMapping, Sequence, Type, Union, Optional
@@ -168,7 +169,7 @@ def compute_nested_kfold_validation(
     y: np.ndarray,
     groups: np.ndarray,
     *,
-    search_ctor: Optional[Type[BaseSearchCV]]
+    search_ctor: Optional[Type[BaseSearchCV]],
     outer_n_splits: int,
     inner_n_splits: int,
     scoring: str                                      = "neg_root_mean_squared_error",
@@ -264,8 +265,8 @@ def compute_nested_kfold_validation(
             )
             grid.fit(X_train, y_train, groups=groups_train)
 
-        best_model  = grid.best_estimator_
-        best_params = grid.best_params_
+            best_model  = grid.best_estimator_
+            best_params = grid.best_params_
 
         y_pred_train = best_model.predict(X_train)
         y_pred_test  = best_model.predict(X_test)
