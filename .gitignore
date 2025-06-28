@@ -1,5 +1,4 @@
 .venv*/
-logs/
 
 *.h5
 *.csv
