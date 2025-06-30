@@ -13,9 +13,9 @@ PROJECT_DIR="/projects/kumar-lab/miaod/projects/unsupervised-aging"
 
 source "${PROJECT_DIR}/.venv/bin/activate"
 python "${PROJECT_DIR}/src/model_training.py" \
-    --input_csv   "${PROJECT_DIR}/data/2025-06-28_supervised-unsupervised-features.csv" \
-    --xcat_json   "${PROJECT_DIR}/data/2025-06-28_supervised-unsupervised-xcats.json" \
-    --output_path "${PROJECT_DIR}/data/2025-06-28_model-training-results.csv" \
+    --input_csv   "${PROJECT_DIR}/data/2025-06-28_kpms-v1_supervised-unsupervised-features.csv" \
+    --xcat_json   "${PROJECT_DIR}/data/2025-06-28_kpms-v1_supervised-unsupervised-xcats.json" \
+    --output_path "${PROJECT_DIR}/data/2025-06-28_kpms-v1_supervised-unsupervised-results.csv" \
     --seed 623 \
     --outer_n_splits 10 \
     --inner_n_splits 5 \
