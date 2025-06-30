@@ -166,15 +166,15 @@ def main(
         )
     ]
 
-    df = pd.read_csv(input_csv)
+    data_df = pd.read_csv(input_csv)
     col_dict = json.load(open(xcat_json, "r"))
-    groups = df["mouse_id"]
+    groups = data_df["mouse_id"]
 
     all_runs = []
     for X_cat in X_cats:
-        X = df[col_dict[X_cat]]
+        X = data_df[col_dict[X_cat]]
         for y_cat in y_cats:
-            y = df[y_cat]
+            y = data_df[y_cat]
 
             print(f"\n(X_cat = {X_cat}, y_cat = {y_cat}):")
             for model in regression_models:
@@ -193,9 +193,9 @@ def main(
 
                 all_runs.append(df)
 
-    df = pd.concat(all_runs, ignore_index=True)
-    df.to_csv(output_path)
-    print(f"Exported df to {output_path}.")
+    results_df = pd.concat(all_runs, ignore_index=True)
+    results_df.to_csv(output_path)
+    print(f"Exported result dataframe to {output_path}.")
 
             
 if __name__ == "__main__":
