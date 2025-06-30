@@ -277,7 +277,7 @@ def compute_nested_kfold_validation(
             base["y_pred"]    = y_pred_block
             base["fold"]      = fold_idx
             base["split"]     = split_label
-            base["sample_id"] = sample_ids_block  # <-- new column
+            base["sample_id"] = sample_ids_block
             for p_name, p_val in best_params.items():
                 base[p_name] = str(p_val)
             return base
