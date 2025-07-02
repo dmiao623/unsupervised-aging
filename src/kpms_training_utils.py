@@ -8,11 +8,11 @@ def fit_and_save_model(
     config_func: Callable[[], Dict[str, Any]],
     project_path: pathlib.Path,
     *,
-    seed: int,
     full_model_iters: int,
     arhmm_iters: int,
     kappa: float,
     reduced_kappa: float
+    seed: int,
 ) -> Tuple[Any, str, Dict[str, Any]]:
 
     model = kpms.init_model(data, pca=pca, **config_func(), seed=seed)

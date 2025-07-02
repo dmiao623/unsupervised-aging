@@ -139,7 +139,7 @@ if name == "__main__":
 
     parser.add_argument("--g_mixed_map_iters", type=int, default=8,
                         help="Degree of serializing computations; reduce if running out of GPU memory")
-    parser.add_argument("--g_arhmm_iters", type=int, default=400,
+    parser.add_argument("--g_arhmm_iters", type=int, default=100,
                         help="Number of AR-HMM fitting iterations")
     parser.add_argument("--g_full_model_iters", type=int, default=400,
                         help="Number of full model fitting iterations")
@@ -147,7 +147,7 @@ if name == "__main__":
                         help="Stickiness hyperparameter for AR HMM fitting")
     parser.add_argument("--g_reduced_kappa", type=float, default=1e5,
                         help="Stickiness hyperparameter for full model fitting")
-    parser.add_argument("--seed", type=float, default=0,
+    parser.add_argument("--seed", type=float, default=623,
                         help="Stickiness hyperparameter for full model fitting")
 
     args = parser.parse_args()
