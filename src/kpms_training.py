@@ -54,7 +54,8 @@ def main(
     g_arhmm_iters: int,
     g_full_model_iters: int,
     g_kappa: float,
-    g_reduced_kapp: float
+    g_reduced_kappa: float
+    seed: int,
 ):
     set_mixed_map_iters(g_mixed_map_iters)
 
@@ -112,6 +113,7 @@ def main(
         arhmm_iters      = g_arhmm_iters,
         kappa            = g_kappa,
         reduced_kappa    = g_reduced_kappa,
+        seed             = seed,
     )
 
     print("\n-- ")
@@ -141,8 +143,12 @@ if name == "__main__":
                         help="Number of AR-HMM fitting iterations")
     parser.add_argument("--g_full_model_iters", type=int, default=400,
                         help="Number of full model fitting iterations")
-    parser.add_argument("--g_kappa", type=float, default=1_000_000,
-                        help="Stickiness hyperparameter")
+    parser.add_argument("--g_kappa", type=float, default=1e6,
+                        help="Stickiness hyperparameter for AR HMM fitting")
+    parser.add_argument("--g_reduced_kappa", type=float, default=1e5,
+                        help="Stickiness hyperparameter for full model fitting")
+    parser.add_argument("--seed", type=float, default=0,
+                        help="Stickiness hyperparameter for full model fitting")
 
     args = parser.parse_args()
 
@@ -152,4 +158,5 @@ if name == "__main__":
     print("------------------\n")
 
     main(args.project_name, args.model_name, args.kpms_dir, args.videos_dir, args.poses_csv_dir,
-         args.g_mixed_map_iters, args.g_arhmm_iters, args.g_full_model_iters, args.g_kappa)
+         args.g_mixed_map_iters, args.g_arhmm_iters, args.g_full_model_iters, args.g_kappa,
+         args.g_reduced_kappa, args.seed)

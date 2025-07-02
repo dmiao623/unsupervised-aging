@@ -7,13 +7,15 @@ def fit_and_save_model(
     pca: Any,
     config_func: Callable[[], Dict[str, Any]],
     project_path: pathlib.Path,
-    full_model_iters:,
+    *,
+    seed: int,
+    full_model_iters: int,
     arhmm_iters: int,
     kappa: float,
-    reduced_kapp: float
+    reduced_kappa: float
 ) -> Tuple[Any, str, Dict[str, Any]]:
 
-    model = kpms.init_model(data, pca=pca, **config_func())
+    model = kpms.init_model(data, pca=pca, **config_func(), seed=seed)
     model = kpms.update_hypparams(model, kappa=kappa)
 
     model = kpms.fit_model(
