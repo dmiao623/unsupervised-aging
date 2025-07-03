@@ -17,7 +17,6 @@ from xgboost import XGBRegressor
 from model_training_utils import TwoStageSearchCV, compute_nested_kfold_validation
 
 
-
 def main(
     input_csv: str,
     xcat_json: str,
