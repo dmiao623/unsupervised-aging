@@ -16,11 +16,6 @@ echo "Running task ID: ${SLURM_ARRAY_TASK_ID}"
 
 PROJECT_DIR="/projects/kumar-lab/miaod/projects/unsupervised-aging"
 
-#mamba init
-#mamba activate keypoint_moseq_mamba_gs
-#module load singularity
-#singularity exec /projects/kumar-lab/sabnig/Builds/PyBase2.sif
-
 PYTHONPATH="${PROJECT_DIR}/src/kpms_kumarlab" \
 python "${PROJECT_DIR}/src/train_kpms.py" \
     --project_name  "2025-07-03_kpms-v2" \

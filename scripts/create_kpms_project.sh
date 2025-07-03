@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#SBATCH --job-name=kpms_training
+#SBATCH --job-name=create_kpms_project
 #SBATCH --time=1:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
@@ -13,11 +13,6 @@
 echo "Start time: $(date)"
 
 PROJECT_DIR="/projects/kumar-lab/miaod/projects/unsupervised-aging"
-
-#mamba init
-#mamba activate keypoint_moseq_mamba_gs
-#module load singularity
-#singularity exec /projects/kumar-lab/sabnig/Builds/PyBase2.sif
 
 PYTHONPATH="${PROJECT_DIR}/src/kpms_kumarlab" \
 python "${PROJECT_DIR}/src/create_kpms_project.py" \
