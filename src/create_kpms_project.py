@@ -1,7 +1,7 @@
 """Script to set up a Keypoint-MoSeq project for training.
 
 This script initializes a new Keypoint-MoSeq project directory, sets configuration options,
-validates pose data quality, and performs PCA to determine the appropriate latent dimensionality.
+and performs PCA to determine the appropriate latent dimensionality.
 
 Usage:
     python train_kpms_setup.py \
@@ -25,7 +25,7 @@ os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
 import jax
 import keypoint_moseq as kpms
 
-from src.utils import set_up_logging, print_gpu_usage, validate_data_quality
+from src.utils import set_up_logging, print_gpu_usage
 from src.methods import load_and_format_data, perform_pca
 
 
@@ -97,10 +97,6 @@ def main(
 
     print("\n--- DATA LOADING + FORMATTING ---")
     data, metadata, coords = load_and_format_data(str(poses_csv_dir), str(project_dir))
-    quality_report = validate_data_quality(coords, metadata.get('confidences', {}))
-    for filename, metrics in quality_report.items():
-        print(f"{filename}: {metrics['total_frames']} frames, "
-              f"mean confidence: {metrics['mean_confidence']:.3f}")
 
     print("\n--- PCA ANALYSIS ---")
     config_fn = lambda: kpms.load_config(str(project_dir))
