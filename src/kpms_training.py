@@ -8,6 +8,7 @@ from pathlib import Path
 os.environ['XLA_PYTHON_CLIENT_PREALLOCATE'] = 'false'
 os.environ['XLA_PYTHON_CLIENT_ALLOCATOR'] = 'platform'
 
+import jax
 import keypoint_moseq as kpms
 from jax_moseq.utils import set_mixed_map_iters
 
@@ -54,7 +55,7 @@ def main(
     g_arhmm_iters: int,
     g_full_model_iters: int,
     g_kappa: float,
-    g_reduced_kappa: float
+    g_reduced_kappa: float,
     seed: int,
 ):
     set_mixed_map_iters(g_mixed_map_iters)
@@ -68,21 +69,20 @@ def main(
         if not dir.is_dir():
             raise FileExistsError(f"Directory '{dir}' does not exist.")
 
-    project_dir.mkdir(parents=True)
-
     kpms.setup_project(
-        project_path,
-        video_dir=videos_dir
+        str(project_dir),
+        video_dir=str(videos_dir),
         bodyparts=G_BODYPARTS,
-        skeleton=G_SKELETON
+        skeleton=G_SKELETON,
+        overwrite=True,
     )
 
-    log_dir = project_path / "logs"
-    log_dir.mkdir()
+    log_dir = project_dir / "logs"
+    log_dir.mkdir(exist_ok=True)
     set_up_logging(log_dir)
 
     kpms.update_config(
-        project_path,
+        str(project_dir),
         anterior_bodyparts=["BASE_NECK_INDEX"],
         posterior_bodyparts=["BASE_TAIL_INDEX"],
         use_bodyparts=G_BODYPARTS
@@ -93,13 +93,13 @@ def main(
         print_gpu_usage()
 
     print("\n--- DATA LOADING + FORMATTING ---")
-    data, metadata, coords = load_and_format_data(G_POSE_CSV_DIR, project_path)
+    data, metadata, coords = load_and_format_data(str(poses_csv_dir), str(project_dir))
 
     print("\n--- PCA ANALYSIS ---")
-    config_fn = lambda: kpms.load_config(project_path)
-    pca, n_comp = perform_pca(data, config_fn, project_path)
+    config_fn = lambda: kpms.load_config(str(project_dir))
+    pca, n_comp = perform_pca(data, config_fn, str(project_dir))
     print(f"Components explaining >90% variance: {n_comp}")
-    kpms.update_config(project_path, latent_dim=n_comp)
+    kpms.update_config(str(project_dir), latent_dim=n_comp)
 
     print("\n--- FITTING AR-HMM ---")
     fit_and_save_model(
@@ -108,18 +108,17 @@ def main(
         metadata,
         pca,
         config_fn,
-        project_path,
-        full_model_iters = g_full_model_iters
+        project_dir,
+        full_model_iters = g_full_model_iters,
         arhmm_iters      = g_arhmm_iters,
         kappa            = g_kappa,
         reduced_kappa    = g_reduced_kappa,
         seed             = seed,
     )
 
-    print("\n-- ")
 
 
-if name == "__main__":
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Input parameters for Keypoint-MoSeq training")
 
     ### configuration parameter
@@ -127,7 +126,7 @@ if name == "__main__":
     parser.add_argument("--project_name", type=str, required=True,
                         help="Name of the keypoint-MoSeq project")
     parser.add_argument("--model_name", type=str, required=True,
-                        help="Name of keypoit-MoSeq model")
+                        help="Name of keypoint-MoSeq model")
     parser.add_argument("--kpms_dir", type=str, required=True,
                         help="Path to write the keypoint-MoSeq directory project to")
     parser.add_argument("--videos_dir", type=str, required=True,
@@ -147,8 +146,8 @@ if name == "__main__":
                         help="Stickiness hyperparameter for AR HMM fitting")
     parser.add_argument("--g_reduced_kappa", type=float, default=1e5,
                         help="Stickiness hyperparameter for full model fitting")
-    parser.add_argument("--seed", type=float, default=623,
-                        help="Stickiness hyperparameter for full model fitting")
+    parser.add_argument("--seed", type=int, default=623,
+                        help="Seed for model fitting initialization")
 
     args = parser.parse_args()
 

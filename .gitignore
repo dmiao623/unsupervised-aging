@@ -1,5 +1,6 @@
 .venv*/
 logs/
+data/datasets/
 
 *.h5
 *.csv

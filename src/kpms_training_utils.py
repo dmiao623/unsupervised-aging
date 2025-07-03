@@ -1,4 +1,7 @@
-from typing import Any, Callable, Dict
+from pathlib import Path
+from typing import Any, Callable, Dict, Tuple
+
+import keypoint_moseq as kpms
 
 def fit_and_save_model(
     model_name: str,
@@ -6,12 +9,12 @@ def fit_and_save_model(
     metadata: Dict[str, Any],
     pca: Any,
     config_func: Callable[[], Dict[str, Any]],
-    project_path: pathlib.Path,
+    project_path: Path,
     *,
     full_model_iters: int,
     arhmm_iters: int,
     kappa: float,
-    reduced_kappa: float
+    reduced_kappa: float,
     seed: int,
 ) -> Tuple[Any, str, Dict[str, Any]]:
 
