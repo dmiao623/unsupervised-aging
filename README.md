@@ -24,10 +24,10 @@
 │   ├── kpms_projects
 │   │   ├── kpms_project1                # minimal example of a KPMS project
 │   │   │   ├── config.yml
+│   │   │   ├── pca.p
 │   │   │   ├── kpms_project1_model1
 │   │   │   │   └── checkpoint.h5
-│   │   │   ├── pca.p
-│   │   │   └── ...
+│   │   │   └── ...                      # each KPMS project may contain several models
 │   │   └── ...
 │   └── ...                              # other data files (e.g. feature matrices)
 ├── scripts/                             # contains *.sh SLURM scripts
