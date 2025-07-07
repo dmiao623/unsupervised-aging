@@ -1,3 +1,0 @@
-[submodule "src/train_kpms/kpms_kumarlab"]
-	path = src/train_kpms/kpms_kumarlab
-	url = git@github.com:anshu957/kpms_kumarlab.git
