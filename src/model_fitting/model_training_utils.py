@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 """
 Runs nested cross-validation for a variety of regression models on input features.
 
@@ -27,7 +25,6 @@ Notes:
     - Results are saved as a flat file with predictions, fold info, best hyperparameters, and metadata.
 """
 
->>>>>>> model-training-script
 import numpy as np
 import pandas as pd
 

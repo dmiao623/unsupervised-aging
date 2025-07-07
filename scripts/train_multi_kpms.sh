@@ -24,3 +24,5 @@ python "${PROJECT_DIR}/src/train_kpms.py" \
     --videos_dir    "${PROJECT_DIR}/data/datasets/aging_nature-aging/videos" \
     --poses_csv_dir "${PROJECT_DIR}/data/datasets/aging_nature-aging/poses_csv" \
     --seed          "${SLURM_ARRAY_TASK_ID}"
+
+echo "End time: $(date)"

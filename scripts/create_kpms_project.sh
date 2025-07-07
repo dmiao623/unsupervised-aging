@@ -20,3 +20,5 @@ python "${PROJECT_DIR}/src/create_kpms_project.py" \
     --kpms_dir      "${PROJECT_DIR}/data/kpms_projects/" \
     --videos_dir    "${PROJECT_DIR}/data/datasets/aging_nature-aging/videos" \
     --poses_csv_dir "${PROJECT_DIR}/data/datasets/aging_nature-aging/poses_csv"
+
+echo "End time: $(date)"

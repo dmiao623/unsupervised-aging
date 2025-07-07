@@ -114,17 +114,17 @@ if __name__ == "__main__":
     ### model training parameters
 
     parser.add_argument("--g_mixed_map_iters", type=int, default=8,
-                        help="Degree of serializing computations; reduce if running out of GPU memory")
+                        help="Degree of serializing computations; reduce if running out of GPU memory (default: 8)")
     parser.add_argument("--g_arhmm_iters", type=int, default=100,
-                        help="Number of AR-HMM fitting iterations")
+                        help="Number of AR-HMM fitting iterations (default: 100)")
     parser.add_argument("--g_full_model_iters", type=int, default=400,
-                        help="Number of full model fitting iterations")
+                        help="Number of full model fitting iterations (default: 400)")
     parser.add_argument("--g_kappa", type=float, default=1e6,
-                        help="Stickiness hyperparameter for AR HMM fitting")
+                        help="Stickiness hyperparameter for AR HMM fitting (default: 1e6)")
     parser.add_argument("--g_reduced_kappa", type=float, default=1e5,
-                        help="Stickiness hyperparameter for full model fitting")
+                        help="Stickiness hyperparameter for full model fitting (default: 1e5)")
     parser.add_argument("--seed", type=int, default=623,
-                        help="Seed for model fitting initialization")
+                        help="Seed for model fitting initialization (default: 623)")
 
     args = parser.parse_args()
 
