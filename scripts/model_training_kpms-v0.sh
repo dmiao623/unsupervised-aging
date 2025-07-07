@@ -9,6 +9,11 @@
 #SBATCH --mem=64G
 #SBATCH --output=/projects/kumar-lab/miaod/projects/unsupervised-aging/logs/output-%j.txt
 
+<<<<<<< HEAD
+=======
+echo "Start time: $(date)"
+
+>>>>>>> model-training-script
 PROJECT_DIR="/projects/kumar-lab/miaod/projects/unsupervised-aging"
 
 source "${PROJECT_DIR}/.venv/bin/activate"
