@@ -39,7 +39,7 @@
     ├── model_fitting
     │   ├── model_training.py            # performs a K-fold validation over several regerssion models
     │   └── model_training_utils.py
-    └── train_kpms
+    ├── train_kpms
     │   ├── create_kpms_project.py       # initializes a KPMS project and runs preprocessing and PCA
     │   ├── train_kpms.py                # trains one or more KPMS model
     │   └── train_kpms_utils.py
