@@ -1,6 +1,7 @@
 .venv*/
 logs/
 data/datasets/
+data/kpms_projects/
 
 *.h5
 *.csv
