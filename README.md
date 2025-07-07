@@ -17,6 +17,7 @@
 ├── data
 │   ├── datasets
 │   │   ├── dataset1                     # example of a dataset; poses/ is optional
+│   │   │   ├── metadata.csv             # metadata file; should contain "name", "age", "fi", "mouse_id", "sex" columns
 │   │   │   ├── poses                    # contains *.h5 pose files
 │   │   │   ├── poses_csv                # contains *.csv pose files
 │   │   │   └── videos                   # contains *.mp4 video files
