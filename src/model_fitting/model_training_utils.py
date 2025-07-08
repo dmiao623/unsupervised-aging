@@ -1,30 +1,3 @@
-"""
-Runs nested cross-validation for a variety of regression models on input features.
-
-This script loads a CSV file containing feature and target variables along with a JSON
-mapping of input feature groupings. It performs nested group-aware cross-validation
-using several regression models, each with appropriate hyperparameter tuning strategies.
-Model predictions, parameters, and performance metrics are aggregated and exported to a CSV file.
-
-Usage:
-    python run_nested_cv.py \
-        --input_csv <path_to_input_csv> \
-        --xcat_json <path_to_xcat_json> \
-        --output_path <path_to_output_csv> \
-        [--seed <int>] \
-        [--outer_n_splits <int>] \
-        [--inner_n_splits <int>] \
-        [--cpu_cores <int>] \
-        [--X_cats <list_of_feature_groups>] \
-        [--y_cats <list_of_target_columns>]
-
-Notes:
-    - The input CSV must include a column named "mouse_id" used for grouped splitting.
-    - The JSON file should map X category names (strings) to lists of column names in the CSV.
-    - Target columns specified in `--y_cats` must exist in the CSV file (either "age" or "fi").
-    - Results are saved as a flat file with predictions, fold info, best hyperparameters, and metadata.
-"""
-
 import numpy as np
 import pandas as pd
 

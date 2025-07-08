@@ -249,18 +249,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print("\n--- RUN CONFIG ---\n"
-         f"input_csv      : {args.input_csv}\n"
-         f"xcat_json      : {args.xcat_json}\n"
-         f"output_path    : {args.output_path}\n"
-         f"seed           : {args.seed}\n"
-         f"outer_n_splits : {args.outer_n_splits}\n"
-         f"inner_n_splits : {args.inner_n_splits}\n"
-         f"cpu_cores      : {args.cpu_cores}\n"
-         f"X_cats         : {args.X_cats}\n"
-         f"y_cats         : {args.y_cats}\n"
-         "-------------------"
-    )
+    print("\n--- RUN CONFIG ---")
+    for k, v in vars(args).items():
+        print(f"{k:20}: {v}")
+    print("------------------\n")
 
     main(args.input_csv, args.xcat_json, args.output_path, args.seed, args.outer_n_splits,
          args.inner_n_splits, args.cpu_cores, args.X_cats, args.y_cats)
