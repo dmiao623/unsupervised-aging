@@ -10,9 +10,12 @@ Usage:
         [--strict_mode]
 """
 
+import argparse
+
 from pathlib import Path
 
 from src.preprocessing import h5_to_csv_poses
+
 
 def main(
     dataset_dir: Path,
@@ -24,10 +27,11 @@ def main(
     if not pose_dir.is_dir():
         raise FileNotFoundError(f"Pose directory {pose_dir} does not exist.")
 
-    pose_csv_dir.mkdir(exists_ok=True)
-    if strict_mode and any(dir_path.iterdir()):
+    pose_csv_dir.mkdir(exist_ok=True)
+    if strict_mode and any(pose_csv_dir.iterdir()):
         raise ValueError(f"Pose CSV directory {pose_csv_dir} is not empty.")
-    h5_to_csv(pose_dir, pose_csv_dir)
+    h5_to_csv_poses(pose_dir, pose_csv_dir)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert pose H5 files to CSV within a dataset directory")
@@ -45,3 +49,4 @@ if __name__ == "__main__":
     print("------------------\n")
 
     main(Path(args.dataset_dir), args.strict_mode)
+

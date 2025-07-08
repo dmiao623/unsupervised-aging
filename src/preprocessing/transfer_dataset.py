@@ -13,35 +13,35 @@ Usage:
         --dataset_dir <path_to_dataset_dir>
 """
 
+import argparse
 import pandas as pd
 
 from pathlib import Path
 
-def main(
-    original_dir: Path,
-    dataset_dir: Path,
-):
+
+def main(original_dir: Path, dataset_dir: Path):
     metadata_df = pd.read_csv(dataset_dir / "metadata.csv")
-    file_basenames = [str(original_dir / name.replace("__", "/")) for name in metadat_df["name"]]
+    names = metadata_df["name"].tolist()
 
-    def str_append(s: str): return lambda x: x + s
-    video_files = list(map(str_append("__trimmed.mp4"), file_basenames))
-    pose_files  = list(map(str_append("_trimmed_pose_est_v6.h5"), file_basenames))
+    video_src = [original_dir / f"{n.replace('__', '/')}_trimmed.mp4" for n in names]
+    pose_src  = [original_dir / f"{n.replace('__', '/')}_trimmed_pose_est_v6.h5" for n in names]
 
-    for file in (video_files + pose_files):
-        if not Path(file).is_file():
-            raise ValueError(f"Path {file} does not exist.")
-    print(f"Beginning transfer of {len(file_basenames)} videon and pose files.")
+    for f in video_src + pose_src:
+        if not f.is_file():
+            raise ValueError(f"{f} does not exist.")
 
-    for file_list, category, extension in [(video_files, "videos"), (pose_files, "poses")]:
-        basepath = dataset_dir / category
-        basepath.mkdir(exists_ok=True)
+    print(f"Beginning transfer of {len(names)} video and pose files.")
 
-        for original_file, basename in zip(file_list, file_basenames):
-            original_path = Path(original_file)
-            new_path = basepath / (basenames + original_path.suffix)
-            new_path.symlink_to(original_path)
-    print(f"File transfer successful.")
+    for src_list, category in [(video_src, "videos"), (pose_src, "poses")]:
+        (dataset_dir / category).mkdir(exist_ok=True)
+        for src, n in zip(src_list, names):
+            dst = dataset_dir / category / f"{n}{src.suffix}"
+            if dst.exists():
+                dst.unlink()
+            dst.symlink_to(src)
+
+    print("File transfer successful.")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Transfer trimmed video and pose files into dataset directory")
