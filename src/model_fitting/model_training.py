@@ -1,5 +1,4 @@
-"""
-Runs nested cross-validation for a variety of regression models on input features.
+"""Runs nested cross-validation for a variety of regression models on input features.
 
 This script loads a CSV file containing feature and target variables along with a JSON
 mapping of input feature groupings. It performs nested group-aware cross-validation
