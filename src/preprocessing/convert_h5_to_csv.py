@@ -16,7 +16,6 @@ from pathlib import Path
 
 from src.preprocessing import h5_to_csv_poses
 
-
 def main(
     dataset_dir: Path,
     strict_mode: bool
@@ -31,7 +30,6 @@ def main(
     if strict_mode and any(pose_csv_dir.iterdir()):
         raise ValueError(f"Pose CSV directory {pose_csv_dir} is not empty.")
     h5_to_csv_poses(pose_dir, pose_csv_dir)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert pose H5 files to CSV within a dataset directory")
@@ -49,4 +47,3 @@ if __name__ == "__main__":
     print("------------------\n")
 
     main(Path(args.dataset_dir), args.strict_mode)
-

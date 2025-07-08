@@ -19,7 +19,10 @@ import pandas as pd
 from pathlib import Path
 
 
-def main(original_dir: Path, dataset_dir: Path):
+def main(
+    original_dir: Path,
+    dataset_dir: Path
+):
     metadata_df = pd.read_csv(dataset_dir / "metadata.csv")
     names = metadata_df["name"].tolist()
 
