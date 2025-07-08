@@ -48,8 +48,10 @@ def main(
         print(f"Creating folder: {target_dir} with {len(chunk)} files")
         for fp in chunk:
             dest = target_dir / fp.name
-            shutil.copy2(fp, dest)
-            print(f"  Copied: {fp.name} → {dest}")
+            if dest.exists() or dest.is_symlink():
+                dest.unlink()
+            dest.symlink_to(fp.resolve())
+            print(f"  Linked: {fp.name} → {dest}")
 
         if folder_idx == total_folders and len(chunk) < files_per_folder:
             print(
