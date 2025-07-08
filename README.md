@@ -20,6 +20,7 @@
 │   │   │   ├── metadata.csv             # metadata file; should contain "name", "age", "fi", "mouse_id", "sex" columns
 │   │   │   ├── poses                    # contains *.h5 pose files
 │   │   │   ├── poses_csv                # contains *.csv pose files
+│   │   │   ├── videos                   # contains *.mp4 video files
 │   │   │   └── videos                   # contains *.mp4 video files
 │   │   └── ...
 │   ├── kpms_projects
@@ -31,19 +32,10 @@
 │   │   │   └── ...                      # each KPMS project may contain several models
 │   │   └── ...
 │   └── ...                              # other data files (e.g. feature matrices)
-├── scripts/                             # contains *.sh SLURM scripts
+├── scripts                              # contains *.sh SLURM scripts
+│   └── templates/                       # contains templates for creating SLURM scripts
 └── src                                  # contains Python and marimo notebook source files
-    ├── kpms_inference
-    │   ├── batch_videos.py              # preprocesses videos into batches to be run in parallel
-    │   ├── kpms_inference.py            # runs inference on each batch
-    │   └── merge_results.py             # merges seperate *.h5 result files from each batch
-    ├── model_fitting
-    │   ├── model_training.py            # performs a K-fold validation over several regerssion models
-    │   └── model_training_utils.py
-    ├── train_kpms
-    │   ├── create_kpms_project.py       # initializes a KPMS project and runs preprocessing and PCA
-    │   ├── train_kpms.py                # trains one or more KPMS model
-    │   └── train_kpms_utils.py
+    ├── [WIP]
     └── kpms_utils -> anshu957/kpms_kumarlab
 ```
 
