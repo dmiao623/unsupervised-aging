@@ -3,9 +3,6 @@ logs/
 data/datasets/
 data/kpms_projects/
 
-*.h5
-*.csv
-
 .ipynb_checkpoints/
 __pycache__/
 
