@@ -2,9 +2,11 @@
 logs/
 data/datasets/
 data/kpms_projects/
+data/*.csv
+scripts/*.sh
 
-.ipynb_checkpoints/
 __pycache__/
+__marimo__/
+.ipynb_checkpoints/
 
 .DS_Store
-__marimo__/
