@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#SBATCH --job-name=model_training
+#SBATCH --job-name=model_evaluation
 #SBATCH --time=1-00:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=64
@@ -11,7 +11,7 @@
 
 echo "Start time: $(date)"
 
-python "${UNSUPERVISED_AGING}/src/model_fitting/model_fitting.py" \
+python "${UNSUPERVISED_AGING}/src/model_evaluation/model_evaluation.py" \
     --input_csv   "${UNSUPERVISED_AGING}/data/{{feature matrix}}.csv" \
     --xcat_json   "${UNSUPERVISED_AGING}/data/{{xcats}}.json" \
     --output_path "${UNSUPERVISED_AGING}/data/{{results}}.csv" \

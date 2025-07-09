@@ -18,10 +18,10 @@ Usage:
         [--y_cats <list_of_target_columns>]
 
 Notes:
-    - The input CSV must include a column named "mouse_id" used for grouped splitting.
-    - The JSON file should map X category names (strings) to lists of column names in the CSV.
-    - Target columns specified in `--y_cats` must exist in the CSV file (either "age" or "fi").
-    - Results are saved as a flat file with predictions, fold info, best hyperparameters, and metadata.
+    The input CSV must include a column named "mouse_id" used for grouped splitting. The JSON file
+    should map X category names (strings) to lists of column names in the CSV. Target columns
+    specified in `--y_cats` must exist in the CSV file (either "age" or "fi"). Results are saved as
+    a flat file with predictions, fold info, best hyperparameters, and metadata.
 """
 
 import argparse

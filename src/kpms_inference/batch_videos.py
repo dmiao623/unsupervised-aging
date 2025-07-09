@@ -24,18 +24,18 @@ def main(
     files_per_folder: int,
 ):
     if not source_dir.is_dir():
-        raise FileNotFoundError(f"Error: Source directory '{source_dir}' does not exist or is not a directory.")
+        raise FileNotFoundError(f"source directory '{source_dir}' does not exist or is not a directory.")
 
     files = sorted(p for p in source_dir.iterdir() if p.is_file())
     total_files = len(files)
-    print(f"Found {total_files} files in {source_dir}")
+    print(f"found {total_files} files in {source_dir}")
 
     if total_files == 0:
-        print("Nothing to do: the source directory is empty.")
+        print("nothing to do: the source directory is empty.")
         return
 
     total_folders = math.ceil(total_files / files_per_folder)
-    print(f"Will create {total_folders} folders with up to {files_per_folder} files per folder\n")
+    print(f"creating {total_folders} folders with <= {files_per_folder} files per folder\n")
 
     for folder_idx in range(1, total_folders + 1):
         target_dir = Path(f"{target_dir_prefix}{folder_idx}")
@@ -45,7 +45,7 @@ def main(
         end = min(folder_idx * files_per_folder, total_files)
         chunk = files[start:end]
 
-        print(f"Creating folder: {target_dir} with {len(chunk)} files")
+        print(f"creating folder: {target_dir} with {len(chunk)} files")
         for fp in chunk:
             dest = target_dir / fp.name
             if dest.exists() or dest.is_symlink():
@@ -54,12 +54,9 @@ def main(
             print(f"  Linked: {fp.name} → {dest}")
 
         if folder_idx == total_folders and len(chunk) < files_per_folder:
-            print(
-                f"Last folder contains {len(chunk)} files "
-                f"(less than the full {files_per_folder})"
-            )
+            print(f"last folder contains {len(chunk)} files (less than the full {files_per_folder})")
 
-    print(f"\nDistributed {total_files} files into {total_folders} folders.")
+    print(f"\ndistributed {total_files} files into {total_folders} folders.")
 
 
 if __name__ == "__main__":

@@ -1,10 +1,10 @@
 """Trains a Keypoint-MoSeq model on preprocessed pose data.
 
-This script loads formatted pose data from a project directory, performs model fitting
-using the Keypoint-MoSeq pipeline, and saves the resulting model to disk.
+This script loads formatted pose data from a project directory, performs model fitting using the
+Keypoint-MoSeq pipeline, and saves the resulting model to disk.
 
 Usage:
-    python train_kpms.py \
+    python kpms_training.py \
         --project_name <project_name> \
         --model_name <model_name> \
         --kpms_dir <path_to_kpms_projects> \
@@ -94,7 +94,6 @@ def main(
     )
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Input parameters for Keypoint-MoSeq training")
 
@@ -105,7 +104,7 @@ if __name__ == "__main__":
     parser.add_argument("--model_name", type=str, required=True,
                         help="Name of keypoint-MoSeq model")
     parser.add_argument("--kpms_dir", type=str, required=True,
-                        help="Path to write the keypoint-MoSeq directory project to")
+                        help="Path of the keypoint-MoSeq project directory")
     parser.add_argument("--videos_dir", type=str, required=True,
                         help="Path that contains the raw videos")
     parser.add_argument("--poses_csv_dir", type=str, required=True,

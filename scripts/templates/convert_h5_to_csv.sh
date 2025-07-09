@@ -13,8 +13,8 @@
 echo "Start time: $(date)"
 
 PYTHONPATH="${UNSUPERVISED_AGING}/src/kpms_utils" \
-python "${UNSUPERVISED_AGING}/src/preprocessing/convert_h5_to_csv.py"
-    --dataset_dir "${UNSUPERVISED_AGING}/data/datasets/{{dataset}}"
+python "${UNSUPERVISED_AGING}/src/preprocessing/convert_h5_to_csv.py" \
+    --dataset_dir "${UNSUPERVISED_AGING}/data/datasets/{{dataset}}" \
     --strict_mode
 
 echo "End time: $(date)"
