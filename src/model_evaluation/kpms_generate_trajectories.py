@@ -35,8 +35,8 @@ def main(
     print("--- GENERATING TRAJECTORY PLOTS ---")
     kpms.generate_trajectory_plots(coordinates, results, project_dir, model_name, **config_fn())
 
-    print("--- GENERATING GRID MOVIES ---")
-    kpms.generate_grid_movies(results, project_dir, model_name, coordinates=coordinates, **config_fn())
+    # print("--- GENERATING GRID MOVIES ---")
+    # kpms.generate_grid_movies(results, project_dir, model_name, coordinates=coordinates, **config_fn())
 
 
 if __name__ == "__main__":

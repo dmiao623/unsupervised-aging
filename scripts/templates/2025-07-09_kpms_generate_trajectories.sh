@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #SBATCH --job-name=kpms_generate_trajectories
-#SBATCH --time=1-00:00:00
+#SBATCH --time=3-00:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --gpus-per-node=1
@@ -15,9 +15,10 @@ echo "Running task ID: ${SLURM_ARRAY_TASK_ID}"
 
 PYTHONPATH="${UNSUPERVISED_AGING}/src/kpms_utils" \
 python "${UNSUPERVISED_AGING}/src/model_evaluation/kpms_generate_trajectories.py" \
-    --project_name  "{{project name}}" \
-    --model_name    "{{model basename}}-${SLURM_ARRAY_TASK_ID}" \
+    --project_name  "2025-07-03_kpms-v2" \
+    --model_name    "2025-07-07_model-2" \
     --kpms_dir      "${UNSUPERVISED_AGING}/data/kpms_projects/" \
-    --poses_csv_dir "${UNSUPERVISED_AGING}/data/datasets/{{dataset}}/poses_csv"
+    --videos_dir    "${UNSUPERVISED_AGING}/data/datasets/nature-aging_370/videos" \
+    --poses_csv_dir "${UNSUPERVISED_AGING}/data/datasets/nature-aging_370/poses_csv"
 
 echo "End time: $(date)"
