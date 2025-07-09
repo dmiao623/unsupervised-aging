@@ -60,8 +60,8 @@ def main(
     print("\n--- MODEL INFERENCE ---")
     config_fn = lambda: kpms.load_config(str(project_dir))
     result_path.parent.mkdir(parents=True, exist_ok=True)
-    kpms.apply_model(model, data, metadata, str(project_dir), model_name,**config_fn(),
-                     result_path=str(result_path))
+    kpms.apply_model(model, data, metadata, str(project_dir), model_name, **config_fn(),
+                     results_path=str(result_path))
 
     print(f"inference results written to '{result_path}'")
 
