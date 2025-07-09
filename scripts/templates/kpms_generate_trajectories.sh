@@ -11,7 +11,6 @@
 #SBATCH --output=/projects/kumar-lab/miaod/projects/unsupervised-aging/logs/output-%j.txt
 
 echo "Start time: $(date)"
-echo "Running task ID: ${SLURM_ARRAY_TASK_ID}"
 
 PYTHONPATH="${UNSUPERVISED_AGING}/src/kpms_utils" \
 python "${UNSUPERVISED_AGING}/src/model_evaluation/kpms_generate_trajectories.py" \

@@ -179,8 +179,15 @@ def _():
 
 
 @app.cell
-def _(config_fn, coordinates, kpms, model_name, project_dir, results):
-    kpms.generate_grid_movies(results, project_dir, model_name, coordinates=coordinates, **config_fn())
+def _(coordinates):
+    trans_coordinates = {k: v[..., ::-1] for k, v in coordinates.items()}
+    return (trans_coordinates,)
+
+
+@app.cell
+def _(config_fn, kpms, model_name, project_dir, results, trans_coordinates):
+    kpms.generate_grid_movies(results, project_dir, model_name, coordinates=trans_coordinates, **config_fn(), overlay_keypoints=True)
+    print(f"rsync -avz miaod@login.sumner2.jax.org:{project_dir / model_name}/grid_movies Downloads/2025-07-09_grid_movies/")
     return
 
 
@@ -203,7 +210,7 @@ def _(
 ):
     linkage = hierarchical_motif_tree(n, U, T, alzh_cost_fn)
 
-    fig, ax = plt.subplots(figsize=(16, 6))
+    fig, ax = plt.subplots(figsize=(64, 24))
     dendrogram(
         linkage,
         ax=ax,
