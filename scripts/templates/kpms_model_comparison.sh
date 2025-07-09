@@ -13,10 +13,10 @@
 echo "Start time: $(date)"
 
 python "${UNSUPERVISED_AGING}/src/kpms_training/kpms_model_comparison.py" \
-    --project_name  "{{project name}}" \
-    --model_name    "{{model basename}}-${SLURM_ARRAY_TASK_ID}" \
-    --kpms_dir      "${UNSUPERVISED_AGING}/data/kpms_projects/" \
-    --num_models    {{num_models}} \
-    --result_path   "${UNSUPERVISED_AGING}/data/datasets/{{dataset}}/model_comparison.json"
+    --project_name   "{{project name}}" \
+    --model_basename "{{model basename}}" \
+    --kpms_dir       "${UNSUPERVISED_AGING}/data/kpms_projects/" \
+    --num_models     {{num_models}} \
+    --result_path    "${UNSUPERVISED_AGING}/data/kpms_projects/{{project name}}/model_comparison.json"
 
 echo "End time: $(date)"
