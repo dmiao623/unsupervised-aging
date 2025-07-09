@@ -99,7 +99,7 @@ def _(mo, np, results):
 def _(kpms, load_and_format_data, poses_csv_dir, project_dir):
     config_fn = lambda: kpms.load_config(project_dir)
     data, metadata, coordinates = load_and_format_data(poses_csv_dir, project_dir)
-    return
+    return config_fn, coordinates
 
 
 @app.cell
@@ -179,8 +179,8 @@ def _():
 
 
 @app.cell
-def _():
-    # kpms.generate_grid_movies(results, project_dir, model_name, coordinates=coordinates, **config_fn())
+def _(config_fn, coordinates, kpms, model_name, project_dir, results):
+    kpms.generate_grid_movies(results, project_dir, model_name, coordinates=coordinates, **config_fn())
     return
 
 
