@@ -4,7 +4,7 @@ This script loads a saved KPMS checkpoint, formats new pose CSV data,
 and writes an HDF5 file with the inference results.
 
 Usage:
-    python apply_kpms_model.py \
+    python kpms_inference.py \
         --project_name <project_name> \
         --model_name <model_name> \
         --kpms_dir <path_to_kpms_projects> \
