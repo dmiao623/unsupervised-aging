@@ -159,7 +159,7 @@ def _(Mapping, Sequence, Tuple, features_df, pd, plt, sns, xcats):
 
 
 @app.cell
-def _(features_df, pd, pearsonr, plt, sns):
+def _(pd, pearsonr, plt, sns):
     def plot_scatterplot_of_features(
         df: pd.DataFrame,
         x_col: str,
@@ -180,13 +180,13 @@ def _(features_df, pd, pearsonr, plt, sns):
         plt.tight_layout()
         plt.show()
 
-    plot_scatterplot_of_features(features_df, "transition_matrix_stationary_unknown", "age")
-    plot_scatterplot_of_features(features_df, "transition_matrix_stationary_unknown", "fi")
+    # plot_scatterplot_of_features(features_df, "transition_matrix_stationary_unknown", "age")
+    # plot_scatterplot_of_features(features_df, "transition_matrix_stationary_unknown", "fi")
     return
 
 
 @app.cell
-def _(features_df, np, pd, plt, sch, sns, squareform, xcats):
+def _(np, pd, plt, sch, sns, squareform):
     def plot_correlation_matrix_heatmap(
         df: pd.DataFrame,
         *,
@@ -235,7 +235,7 @@ def _(features_df, np, pd, plt, sch, sns, squareform, xcats):
         plt.tight_layout()
         plt.show()
 
-    plot_correlation_matrix_heatmap(features_df[xcats["supervised"]])
+    # plot_correlation_matrix_heatmap(features_df[xcats["supervised"]])
     return
 
 
@@ -340,113 +340,57 @@ def _(
     return
 
 
-app._unparsable_cell(
-    r"""
-    |def plot_model_performance_bar_graph(
+@app.cell
+def _(Optional, Tuple, pd, plt, results_df, sns):
+    def plot_model_performance_bar_graph(
         df: pd.DataFrame,
         *,
         figsize: Tuple[float, float]       = (3., 6.),
         lim: Optional[Tuple[float, float]] = None,
-        ylabel: str                        = \"MAE\",
+        ylabel: str                        = "MAE",
     ):
-        abs_err = (df[\"y_pred\"] - df[\"y_true\"]).abs()
+        abs_err = (df["y_pred"] - df["y_true"]).abs()
         fold_mae = (
-            abs_err.groupby([df[\"model\"], df[\"fold\"]])
+            abs_err.groupby([df["model"], df["fold"]])
             .mean()
-            .reset_index(name=\"mae\")
+            .reset_index(name="mae")
         )
 
-        assert fold_mae.groupby(\"model\").size().eq(10).all(), \"Some model is missing folds.\"
+        assert fold_mae.groupby("model").size().eq(10).all(), "Some model is missing folds."
 
         plt.figure(figsize=figsize)
         sns.boxplot(
-            x=\"model\",
-            y=\"mae\",
+            x="model",
+            y="mae",
             data=fold_mae,
             showfliers=True,
             width=0.4,
-            flierprops={\"marker\": \".\", \"color\": \"black\", \"markersize\": 4},
+            flierprops={"marker": ".", "color": "black", "markersize": 4},
         )
         plt.xticks(rotation=90)
         if lim:
             plt.ylim(*lim)
-        plt.grid(axis=\"y\", linestyle=\"--\", alpha=0.7)
-        plt.xlabel(\"Model\")
+        plt.grid(axis="y", linestyle="--", alpha=0.7)
+        plt.xlabel("Model")
         plt.ylabel(ylabel)
         plt.tight_layout()
         plt.show()
 
     plot_model_performance_bar_graph(
         results_df[
-            (results_df[\"y_cat\"] == \"age\") &
-            (results_df[\"X_cat\"] == \"kpms-v2_all\") &
-            (results_df[\"split\"]  == \"test\") &
-            (results_df[\"model\"].isin([\"Elastic Net\", \"Random Forest\", \"XGBoost\", \"Multi-Layer Perceptron\"]))
+            (results_df["y_cat"] == "age") &
+            (results_df["X_cat"] == "kpms-v2_all") &
+            (results_df["split"]  == "test") &
+            (results_df["model"].isin(["Elastic Net", "Random Forest", "XGBoost", "Multi-Layer Perceptron"]))
         ],
         lim = (8., 22.),
-        ylabel = \"MAE (weeks)\",
+        ylabel = "MAE (weeks)",
     )
-    """,
-    name="_"
-)
+    return
 
 
 @app.cell
-def _(Mapping, Optional, Sequence, Tuple, pd):
-    # def plot_grouped_model_performance_bar_graph(
-    #     dfs: Sequence[pd.DataFrame],
-    #     label_map: Optional[Mapping[str, str]] = None,
-    #     *,
-    #     figsize: Tuple[float, float]       = (6.0, 6.0),
-    #     lim: Optional[Tuple[float, float]] = None,
-    #     ylabel: str                        = "MAE",
-    # ) -> None:
-    #     frames = []
-    #     for df in dfs:
-    #         mae = (df["y_pred"] - df["y_true"]).abs()
-    #         frame = (
-    #             mae.groupby([df["model"], df["fold"]])
-    #             .mean()
-    #             .reset_index(name="mae")
-    #         )
-    #         frame["X_cat"] = df["X_cat"].iloc[0]
-    #         frames.append(frame)
-
-    #     fold_mae_all = pd.concat(frames, ignore_index=True)
-    #     fold_mae_all["slice_label"] = (
-    #         fold_mae_all["X_cat"].map(label_map) if label_map else fold_mae_all["X_cat"]
-    #     )
-
-    #     assert fold_mae_all.groupby(["model", "X_cat"]).size().eq(10).all(), "Some model is missing folds."
-
-    #     plt.figure(figsize=figsize)
-    #     sns.boxplot(
-    #         data=fold_mae_all,
-    #         x="model",
-    #         y="mae",
-    #         hue="slice_label",
-    #         dodge=True,
-    #         width=0.6,
-    #         showfliers=True,
-    #         flierprops={"marker": ".", "markersize": 4, "color": "black"},
-    #     )
-    #     plt.xticks(rotation=90)
-    #     if lim:
-    #         plt.ylim(*lim)
-    #     plt.grid(axis="y", linestyle="--", alpha=0.7)
-    #     plt.xlabel("Model")
-    #     plt.ylabel(ylabel)
-    #     plt.legend(title=None, loc="upper right")
-    #     plt.tight_layout()
-    #     plt.show()
-
-    from plotnine import (
-        ggplot, aes, geom_boxplot, position_dodge,
-        scale_y_continuous, labs, theme_bw, theme,
-        element_text, element_line, element_blank 
-    )
-
-
+def _(Mapping, Optional, Sequence, Tuple, pd, plt, sns):
     def plot_grouped_model_performance_boxplot(
         dfs: Sequence[pd.DataFrame],
         label_map: Optional[Mapping[str, str]] = None,
@@ -454,29 +398,7 @@ def _(Mapping, Optional, Sequence, Tuple, pd):
         figsize: Tuple[float, float]       = (6.0, 6.0),
         lim: Optional[Tuple[float, float]] = None,
         ylabel: str                        = "MAE",
-    ):
-        """
-        Draw a grouped-boxplot of model performance, sliced by X_cat,
-        using plotnine (ggplot syntax).
-
-        Parameters
-        ----------
-        dfs       : iterable of DataFrames
-            Each DataFrame must contain columns
-            ['y_pred', 'y_true', 'model', 'fold', 'X_cat'].
-        label_map : dict, optional
-            Maps raw slice labels in `X_cat` to pretty names.
-        figsize   : (width, height) in inches for the final figure.
-        lim       : (ymin, ymax) to constrain the y-axis; pass None for auto.
-        ylabel    : str, y-axis label (default “MAE”).
-
-        Returns
-        -------
-        plotnine.ggplot
-            A ggplot object that will render automatically in Jupyter
-            (or can be printed / saved).
-        """
-        # ── Aggregate MAE per (model, fold, slice) ────────────────────────────
+    ) -> None:
         frames = []
         for df in dfs:
             mae = (df["y_pred"] - df["y_true"]).abs()
@@ -485,46 +407,122 @@ def _(Mapping, Optional, Sequence, Tuple, pd):
                 .mean()
                 .reset_index(name="mae")
             )
-            frame["X_cat"] = df["X_cat"].iloc[0]      # add slice identifier
+            frame["X_cat"] = df["X_cat"].iloc[0]
             frames.append(frame)
 
         fold_mae_all = pd.concat(frames, ignore_index=True)
         fold_mae_all["slice_label"] = (
-            fold_mae_all["X_cat"].map(label_map)
-            if label_map else
-            fold_mae_all["X_cat"]
+            fold_mae_all["X_cat"].map(label_map) if label_map else fold_mae_all["X_cat"]
         )
 
-        # sanity-check: every (model, slice) should have 10 folds
-        assert fold_mae_all.groupby(["model", "X_cat"]).size().eq(10).all(), \
-            "Some model is missing folds."
+        assert fold_mae_all.groupby(["model", "X_cat"]).size().eq(10).all(), "Some model is missing folds."
 
-        # ── Build the plot ────────────────────────────────────────────────────
-        g = (
-            ggplot(fold_mae_all,
-                   aes(x="model",
-                       y="mae",
-                       fill="slice_label"))
-            + geom_boxplot(
-                width=.6,
-                position=position_dodge(width=.6),
-                outlier_shape=".",
-                outlier_size=2
-            )
-            + labs(x="Model", y=ylabel, fill=None)
-            + theme_bw()
-            + theme(
-                figure_size=figsize,
-                axis_text_x=element_text(angle=90, va="center"),
-                panel_grid_major_y=element_line(linetype="--", alpha=.7),   # ✓ correct
-                panel_grid_major_x=element_blank()                          # ✓ hide vertical gridlines
-            )
+        plt.figure(figsize=figsize)
+        sns.boxplot(
+            data=fold_mae_all,
+            x="model",
+            y="mae",
+            hue="slice_label",
+            dodge=True,
+            width=0.6,
+            showfliers=True,
+            flierprops={"marker": ".", "markersize": 4, "color": "black"},
         )
-
+        plt.xticks(rotation=90)
         if lim:
-            g += scale_y_continuous(limits=lim)
+            plt.ylim(*lim)
+        plt.grid(axis="y", linestyle="--", alpha=0.7)
+        plt.xlabel("Model")
+        plt.ylabel(ylabel)
+        plt.legend(title=None, loc="upper right")
+        plt.tight_layout()
+        plt.show()
 
-        return g
+    # from plotnine import (
+    #     ggplot, aes, geom_boxplot, position_dodge,
+    #     scale_y_continuous, labs, theme_bw, theme,
+    #     element_text, element_line, element_blank 
+    # )
+
+
+    # def plot_grouped_model_performance_boxplot(
+    #     dfs: Sequence[pd.DataFrame],
+    #     label_map: Optional[Mapping[str, str]] = None,
+    #     *,
+    #     figsize: Tuple[float, float]       = (6.0, 6.0),
+    #     lim: Optional[Tuple[float, float]] = None,
+    #     ylabel: str                        = "MAE",
+    # ):
+    #     """
+    #     Draw a grouped-boxplot of model performance, sliced by X_cat,
+    #     using plotnine (ggplot syntax).
+
+    #     Parameters
+    #     ----------
+    #     dfs       : iterable of DataFrames
+    #         Each DataFrame must contain columns
+    #         ['y_pred', 'y_true', 'model', 'fold', 'X_cat'].
+    #     label_map : dict, optional
+    #         Maps raw slice labels in `X_cat` to pretty names.
+    #     figsize   : (width, height) in inches for the final figure.
+    #     lim       : (ymin, ymax) to constrain the y-axis; pass None for auto.
+    #     ylabel    : str, y-axis label (default “MAE”).
+
+    #     Returns
+    #     -------
+    #     plotnine.ggplot
+    #         A ggplot object that will render automatically in Jupyter
+    #         (or can be printed / saved).
+    #     """
+    #     # ── Aggregate MAE per (model, fold, slice) ────────────────────────────
+    #     frames = []
+    #     for df in dfs:
+    #         mae = (df["y_pred"] - df["y_true"]).abs()
+    #         frame = (
+    #             mae.groupby([df["model"], df["fold"]])
+    #             .mean()
+    #             .reset_index(name="mae")
+    #         )
+    #         frame["X_cat"] = df["X_cat"].iloc[0]      # add slice identifier
+    #         frames.append(frame)
+
+    #     fold_mae_all = pd.concat(frames, ignore_index=True)
+    #     fold_mae_all["slice_label"] = (
+    #         fold_mae_all["X_cat"].map(label_map)
+    #         if label_map else
+    #         fold_mae_all["X_cat"]
+    #     )
+
+    #     # sanity-check: every (model, slice) should have 10 folds
+    #     assert fold_mae_all.groupby(["model", "X_cat"]).size().eq(10).all(), \
+    #         "Some model is missing folds."
+
+    #     # ── Build the plot ────────────────────────────────────────────────────
+    #     g = (
+    #         ggplot(fold_mae_all,
+    #                aes(x="model",
+    #                    y="mae",
+    #                    fill="slice_label"))
+    #         + geom_boxplot(
+    #             width=.6,
+    #             position=position_dodge(width=.6),
+    #             outlier_shape=".",
+    #             outlier_size=2
+    #         )
+    #         + labs(x="Model", y=ylabel, fill=None)
+    #         + theme_bw()
+    #         + theme(
+    #             figure_size=figsize,
+    #             axis_text_x=element_text(angle=90, va="center"),
+    #             panel_grid_major_y=element_line(linetype="--", alpha=.7),   # ✓ correct
+    #             panel_grid_major_x=element_blank()                          # ✓ hide vertical gridlines
+    #         )
+    #     )
+
+    #     if lim:
+    #         g += scale_y_continuous(limits=lim)
+
+    #     return g
     return (plot_grouped_model_performance_boxplot,)
 
 
@@ -557,7 +555,7 @@ def _(plot_grouped_model_performance_boxplot, results_df):
                     (results_df["split"]  == "test") &
                     (results_df["model"].isin(["Elastic Net", "Random Forest", "XGBoost", "Multi-Layer Perceptron"]))
                 ],
-            
+
             ],
             {
                 "kpms-v2_nonmeta": "unsup. w/o metasyllables",
@@ -572,72 +570,6 @@ def _(plot_grouped_model_performance_boxplot, results_df):
 
     plot_ycat_kpmsv1_supunsup_results("age", ylabel="MAE (weeks)", lim = (8., 22.))
     plot_ycat_kpmsv1_supunsup_results("fi", ylabel="MAE (FI)", lim = (0.75, 2.0))
-    return
-
-
-@app.cell
-def _(Optional, Sequence, Tuple, kpmsv1_supunsup_results, pd, plt, sns):
-    def plot_split_model_performance_bar_graph(
-        df: pd.DataFrame,
-        *,
-        splits: Sequence[str]               = ("train", "test"),
-        figsize: Tuple[float, float]        = (6.0, 6.0),
-        lim: Optional[Tuple[float, float]]  = None,
-        ylabel: str                         = "MAE",
-    ) -> None:
-        frames = []
-        for split_val in splits:
-            subset = df[df["split"] == split_val]
-            mae = (subset["y_pred"] - subset["y_true"]).abs()
-            frame = (
-                mae.groupby([subset["model"], subset["fold"]])
-                .mean()
-                .reset_index(name="mae")
-            )
-            frame["split_label"] = split_val
-            frames.append(frame)
-
-        fold_mae_all = pd.concat(frames, ignore_index=True)
-
-        assert (
-            fold_mae_all.groupby(["model", "split_label"]).size().eq(10).all()
-        ), "Some model is missing folds."
-
-        plt.figure(figsize=figsize)
-        sns.boxplot(
-            data=fold_mae_all,
-            x="model",
-            y="mae",
-            hue="split_label",
-            dodge=True,
-            width=0.6,
-            showfliers=True,
-            flierprops={"marker": ".", "markersize": 4, "color": "black"},
-        )
-        plt.xticks(rotation=90)
-        if lim:
-            plt.ylim(*lim)
-        plt.grid(axis="y", linestyle="--", alpha=0.7)
-        plt.xlabel("Model")
-        plt.ylabel(ylabel)
-        plt.legend(title=None, loc="upper right")
-        plt.tight_layout()
-        plt.show()
-
-    plot_split_model_performance_bar_graph(
-        kpmsv1_supunsup_results[
-            (kpmsv1_supunsup_results["y_cat"] == "fi") &
-            (kpmsv1_supunsup_results["X_cat"] == "unsup") &
-            (kpmsv1_supunsup_results["model"].isin(["Elastic Net", "Random Forest", "XGBoost", "Multi-Layer Perceptron"]))
-        ],
-        figsize=(3, 6),
-    )
-    return
-
-
-@app.cell
-def _(results_df):
-    (list(results_df.columns))
     return
 
 
@@ -723,6 +655,11 @@ def _(Optional, Tuple, linregress, np, pd, plt, results_df):
 
     plot_pred_vs_true(results_df[results_df["model"] == "XGBoost"], "all", "age", lims=(0, 200))
     plot_pred_vs_true(results_df[results_df["model"] == "XGBoost"], "all", "fi", lims=(0, 14))
+    return
+
+
+@app.cell
+def _():
     return
 
 
