@@ -40,7 +40,7 @@ from sklearn.neural_network import MLPRegressor
 from typing import Sequence
 from xgboost import XGBRegressor
 
-from model_training_utils import TwoStageSearchCV, compute_nested_kfold_validation
+from model_evaluation_utils import TwoStageSearchCV, compute_nested_kfold_validation
 
 
 def main(
@@ -163,7 +163,7 @@ def main(
                     solver              = "adam",
                     early_stopping      = True,
                     validation_fraction = 0.2,
-                    max_iter            = 10000,
+                    max_iter            = 100000,
                     n_iter_no_change    = 10,
                     random_state        = seed,
                 )),
