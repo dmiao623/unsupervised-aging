@@ -8,5 +8,3 @@ __marimo__/
 .ipynb_checkpoints/
 
 .DS_Store
-
-src/kpms_utils/
