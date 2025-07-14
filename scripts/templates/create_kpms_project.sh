@@ -16,7 +16,7 @@ PYTHONPATH="${UNSUPERVISED_AGING}/src/kpms_utils" \
 python "${UNSUPERVISED_AGING}/src/kpms_training/create_kpms_project.py" \
     --project_name  "{{project_name}}" \
     --kpms_dir      "${UNSUPERVISED_AGING}/data/kpms_projects/" \
-    --videos_dir    "${UNSUPERVISED_AGING}/data/datasets/{{dataset}}/videos" \
-    --poses_csv_dir "${UNSUPERVISED_AGING}/data/datasets/{{dataset}}/poses_csv"
+    --videos_dir    "${UNSUPERVISED_AGING}/data/datasets/{{dataset}}/kpms_training_set/videos" \
+    --poses_csv_dir "${UNSUPERVISED_AGING}/data/datasets/{{dataset}}/kpms_training_set/poses_csv"
 
 echo "End time: $(date)"

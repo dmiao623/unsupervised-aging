@@ -36,7 +36,7 @@ from jax_moseq.utils import set_mixed_map_iters
 
 from src.utils import set_up_logging, print_gpu_usage
 from src.methods import load_and_format_data
-from train_kpms_utils import fit_and_save_model
+from kpms_training_utils import fit_and_save_model
 
 
 def main(

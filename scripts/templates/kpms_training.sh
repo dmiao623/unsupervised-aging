@@ -19,8 +19,8 @@ python "${UNSUPERVISED_AGING}/src/kpms_training/kpms_training.py" \
     --project_name  "{{project name}}" \
     --model_name    "{{model basename}}-${SLURM_ARRAY_TASK_ID}" \
     --kpms_dir      "${UNSUPERVISED_AGING}/data/kpms_projects/" \
-    --videos_dir    "${UNSUPERVISED_AGING}/data/datasets/{{dataset}}/videos" \
-    --poses_csv_dir "${UNSUPERVISED_AGING}/data/datasets/{{dataset}}/poses_csv" \
+    --videos_dir    "${UNSUPERVISED_AGING}/data/datasets/{{dataset}}/kpms_training_set/videos" \
+    --poses_csv_dir "${UNSUPERVISED_AGING}/data/datasets/{{dataset}}/kpms_training_set/poses_csv" \
     --seed          "${SLURM_ARRAY_TASK_ID}"
 
 echo "End time: $(date)"
