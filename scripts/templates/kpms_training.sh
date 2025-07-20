@@ -15,6 +15,9 @@ echo "Start time: $(date)"
 echo "Running task ID: ${SLURM_ARRAY_TASK_ID}"
 
 PYTHONPATH="${UNSUPERVISED_AGING}/src/kpms_utils" \
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+XLA_PYTHON_CLIENT_ALLOCATOR=platform \
+TF_FORCE_GPU_ALLOW_GROWTH=true \
 python "${UNSUPERVISED_AGING}/src/kpms_training/kpms_training.py" \
     --project_name  "{{project name}}" \
     --model_name    "{{model basename}}-${SLURM_ARRAY_TASK_ID}" \

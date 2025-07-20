@@ -27,9 +27,6 @@ import os
 
 from pathlib import Path
 
-os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
-
 import jax
 import keypoint_moseq as kpms
 from jax_moseq.utils import set_mixed_map_iters
@@ -68,17 +65,19 @@ def main(
     set_up_logging(log_dir)
 
     if jax.devices()[0].platform != "cpu":
-        print("\n--- GPU USAGE ---\n")
         print_gpu_usage()
 
-    print("\n--- DATA LOADING + FORMATTING ---")
+    print("\n--- DATA LOADING + FORMATTING ---\n")
     data, metadata, _ = load_and_format_data(str(poses_csv_dir), str(project_dir))
 
-    print("\n--- PCA ANALYSIS ---")
+    print("\n--- PCA ANALYSIS ---\n")
     config_fn = lambda: kpms.load_config(str(project_dir))
     pca = kpms.io.load_pca(project_dir)
 
-    print("\n--- FITTING MODELS ---")
+    if jax.devices()[0].platform != "cpu":
+        print_gpu_usage()
+
+    print("\n--- FITTING MODELS ---\n")
     fit_and_save_model(
         model_name,
         data,

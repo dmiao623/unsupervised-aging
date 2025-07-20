@@ -46,13 +46,13 @@ def _():
 
 @app.cell
 def _(Path, os):
-    project_name  = "2025-07-03_kpms-v2"
-    model_name    = "2025-07-07_model-2"
+    project_name  = "2025-07-16_kpms-v3"
+    model_name    = "2025-07-16_model-4"
     kpms_dir      = Path(os.environ["UNSUPERVISED_AGING"] + "/data/kpms_projects")
-    dataset_dir   = Path(os.environ["UNSUPERVISED_AGING"] + "/data/datasets/nature-aging_370/")
+    dataset_dir   = Path(os.environ["UNSUPERVISED_AGING"] + "/data/datasets/geroscience_492/")
     poses_csv_dir = dataset_dir / "poses_csv"
 
-    supervised_features_path = Path(os.environ["UNSUPERVISED_AGING"]) / "data/archive/supervised_features.csv"
+    supervised_features_path = Path(os.environ["UNSUPERVISED_AGING"]) / "data/archive/B6DO_video.csv"
 
     project_dir = kpms_dir / project_name
     return dataset_dir, model_name, project_dir, supervised_features_path
@@ -210,7 +210,7 @@ def _(Dict, Mapping, Optional, Sequence, mo, np, results):
         "rearing":    [0, 2, 7, 8, 10, 11, 16, 21],
         "stationary": [1, 3, 6, 12, 15, 18, 22], 
     })
-    return (grouped_syllable_transition_matrix,)
+    return
 
 
 @app.cell
@@ -218,7 +218,6 @@ def _(
     Any,
     Dict,
     Sequence,
-    grouped_syllable_transition_matrix,
     latent_embedding_statistics,
     operator,
     pd,
@@ -236,7 +235,7 @@ def _(
     unsupervised_features_df = _merge_features([
         latent_embedding_statistics, 
         syllable_frequency_statistics,
-        grouped_syllable_transition_matrix,
+        # grouped_syllable_transition_matrix,
     ])
     unsupervised_features_df
     return (unsupervised_features_df,)
@@ -254,45 +253,97 @@ def _(dataset_dir, pd, unsupervised_features_df):
 
 
 @app.cell
+def _(metadata_unsupervised_features_df):
+    left_key = ["mouse_id", "sex", "fi"]
+
+    dups_left = (
+        metadata_unsupervised_features_df[
+            metadata_unsupervised_features_df.duplicated(left_key, keep=False)
+        ]
+        .sort_values(left_key)            # nice, readable order
+    )
+
+    dups_left
+    return
+
+
+@app.cell
 def _(metadata_unsupervised_features_df, pd, supervised_features_path):
     ### merge with supervised feature matrix
 
     supervised_features_df = pd.read_csv(supervised_features_path)
     supervised_columns = [
-        col for col in supervised_features_df.columns if col not in ["MouseID", "Batch", "Tester", "TestAge", "Weight", "score", "CFI_norm", "CFI", "Sex"]
+        col for col in supervised_features_df.columns if col not in ["NetworkFilename", "PoseFilename", "Batch", "Tester", "AgeGroup", "MouseID", "Strain", "Diet", "Weight", "Sex", "AgeW", "AgeAtVid", "CFI_norm", "FLL", "score"]
     ]
+    supervised_features_df["name"] = (
+        supervised_features_df["NetworkFilename"]
+          .str.replace("/", "__")
+          .str.replace(r"\.avi$", "", regex=True)
+    )
 
-    features_df = metadata_unsupervised_features_df.merge(
+    matched_features_df = metadata_unsupervised_features_df.merge(
         supervised_features_df, 
-        left_on=["mouse_id", "sex", "fi"],
-        right_on=["MouseID", "Sex", "score"],
+        on="name",
         how="inner"
     )
-    features_df = (features_df.loc[features_df["age"].sub(features_df["TestAge"]).abs().le(1)])
-    features_df = features_df[list(metadata_unsupervised_features_df.columns) + supervised_columns].copy()
+    matched_features_df = (matched_features_df.loc[matched_features_df["age"].sub(matched_features_df["AgeAtVid"]).abs().le(1)])
+    matched_features_df = matched_features_df[list(metadata_unsupervised_features_df.columns) + supervised_columns].copy()
+    matched_features_df
+    return matched_features_df, supervised_columns, supervised_features_df
+
+
+@app.cell
+def _(metadata_unsupervised_features_df, supervised_features_df):
+    names_unsup = set(metadata_unsupervised_features_df['name'])
+    names_sup   = set(supervised_features_df['name'])
+
+    missing_from_sup = names_unsup - names_sup
+
+    unmatched_metadata_unsupervised_features_df = metadata_unsupervised_features_df[
+        metadata_unsupervised_features_df["name"].isin(missing_from_sup)
+    ].copy()
+    unmatched_metadata_unsupervised_features_df["NetworkFilename"] = (
+        "/" + unmatched_metadata_unsupervised_features_df["name"]
+            .str.split("__")
+            .str[-1]
+            .astype(str) + ".avi"
+    )
+    print(unmatched_metadata_unsupervised_features_df["NetworkFilename"])
+
+    unmatched_features_df = unmatched_metadata_unsupervised_features_df.merge(
+        supervised_features_df, 
+        on="NetworkFilename",
+        how="inner"
+    )
+    unmatched_features_df
+    return (unmatched_features_df,)
+
+
+@app.cell
+def _(matched_features_df, pd, unmatched_features_df):
+    features_df = pd.concat((matched_features_df, unmatched_features_df), axis=0)
     features_df
-    return features_df, supervised_columns
+    return (features_df,)
 
 
 @app.cell
 def _(
-    grouped_syllable_transition_matrix,
     latent_embedding_statistics,
     supervised_columns,
     syllable_frequency_statistics,
 ):
     _all_unsupervised_columns = (
         list(latent_embedding_statistics.keys()) + 
-        list(syllable_frequency_statistics.keys()) +
-        list(grouped_syllable_transition_matrix.keys())
+        list(syllable_frequency_statistics.keys())
+        # list(grouped_syllable_transition_matrix.keys())
     )
 
     Xcats = {
         "kpms-v2_all": _all_unsupervised_columns,
-        "kpms-v2_nonmeta": (
-            list(latent_embedding_statistics.keys()) + 
-            list(syllable_frequency_statistics.keys())
-        ),
+        # "kpms-v2_nonmeta": (
+        #    list(latent_embedding_statistics.keys()) + 
+        #    list(syllable_frequency_statistics.keys())
+        #),
         "supervised": supervised_columns,
         "all": _all_unsupervised_columns + supervised_columns
     }
@@ -302,8 +353,8 @@ def _(
 @app.cell
 def _(Path, Xcats, features_df, json, os):
     feature_matrix_output_dir = Path(os.environ["UNSUPERVISED_AGING"] + "/data/feature_matrices")
-    feature_matrix_output_path = feature_matrix_output_dir / "2025-07-10_kpms-v2-supervised_feature-matrix.csv"
-    xcats_output_path = feature_matrix_output_dir / "2025-07-10_kpms-v2-supervised_xcats.json"
+    feature_matrix_output_path = feature_matrix_output_dir / "2025-07-16_kpms-v3-supervised_feature-matrix.csv"
+    xcats_output_path = feature_matrix_output_dir / "2025-07-16_kpms-v3-supervised_xcats.json"
 
     features_df.to_csv(feature_matrix_output_path)
     with xcats_output_path.open("w") as f:
@@ -312,11 +363,6 @@ def _(Path, Xcats, features_df, json, os):
     print(f"wrote feature matrix to  `{feature_matrix_output_path}`")
     print(f"wrote X category JSON to `{xcats_output_path}`")
     print(f"X category keys: {Xcats.keys()}")
-    return
-
-
-@app.cell
-def _():
     return
 
 
