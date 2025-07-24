@@ -41,18 +41,35 @@ def main(
     metadata_df = pd.read_csv(dataset_dir / "metadata.csv")
     df = metadata_df.copy()
 
+    # Bin numeric stratification variables and cast categorical ones
     for _col, _n_bins in strat_vars_bins.items():
         df[f"__bin_{_col}"] = pd.cut(df[_col], bins=_n_bins, labels=False, include_lowest=True)
     for _cat in categorical_vars:
         df[f"__bin_{_cat}"] = df[_cat].astype(str)
+
+    # Build joint‑stratum identifier *before sampling*
     all_bins = [f"__bin_{c}" for c in list(strat_vars_bins) + list(categorical_vars)]
     strata = df[all_bins].astype(str).agg("-".join, axis=1)
+
+    # ------------------------------------------------------------
+    # Display population distribution of records across strata
+    # ------------------------------------------------------------
+    pop_counts = strata.value_counts(sort=False).sort_index()
+    pop_dist_df = pop_counts.reset_index()
+    pop_dist_df.columns = ["stratum", "population_count"]
+
+    print("\n--- STRATA POPULATION DISTRIBUTION ---")
+    print(pop_dist_df.to_string(index=False))
+    print("--------------------------------------\n")
+
+    # Perform stratified shuffle split
     sss = StratifiedShuffleSplit(n_splits=1, train_size=n_samples, random_state=seed)
     train_idx, _ = next(sss.split(df, strata))
     result = df.index[train_idx].tolist()
     if len(result) != n_samples:
         raise ValueError("Sample size mismatch.")
 
+    # Continue with the original workflow
     export_dir.mkdir(exist_ok=True)
     (export_dir / "videos").mkdir(exist_ok=True)
     (export_dir / "poses_csv").mkdir(exist_ok=True)
@@ -68,6 +85,7 @@ def main(
 
     videos_dir = dataset_dir / "videos"
     poses_csv_dir = dataset_dir / "poses_csv"
+
     def _copy_symlink(src: Path, dst: Path, allow_regular: bool = False):
         if src.is_symlink():
             target = src.resolve(strict=True)
@@ -81,6 +99,7 @@ def main(
         if dst.exists() or dst.is_symlink():
             dst.unlink()
         dst.symlink_to(target)
+
     selected_names = df.loc[result, "name"].tolist()
 
     print(f"Beginning export of {len(selected_names)} samples.")
@@ -99,6 +118,7 @@ def main(
             samp["variable"] = col
             samp["set"] = "sample"
             plot_frames.extend([pop, samp])
+
         joint_cols = [f"__bin_{v}" for v in all_vars]
         df["__joint"] = df[joint_cols].astype(str).agg("-".join, axis=1)
         pop_joint = df["__joint"].value_counts(sort=False).rename_axis("bin").reset_index(name="count")
@@ -108,6 +128,7 @@ def main(
         samp_joint["variable"] = "joint"
         samp_joint["set"] = "sample"
         plot_frames.extend([pop_joint, samp_joint])
+
         plot_df = pd.concat(plot_frames, ignore_index=True)
         plot_df["bin"] = plot_df["bin"].astype(str)
         p = (
@@ -160,3 +181,4 @@ if __name__ == "__main__":
         strat_dict[k] = int(v)
 
     main(args.dataset_dir, args.export_dir, args.categorical_vars, strat_dict, args.n_samples, args.seed, args.figure_path)
+

@@ -14,6 +14,14 @@ def _():
 
 @app.cell
 def _():
+    import os
+    os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+    os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
+    return (os,)
+
+
+@app.cell
+def _():
     import marimo as mo
     import matplotlib.pyplot as plt
     import networkx as nx
@@ -29,22 +37,21 @@ def _():
 
 
 @app.cell
-def _():
-    import os
+def _(os):
     import sys
 
     sys.path.append(os.environ["UNSUPERVISED_AGING"] + "/src/kpms_utils")
 
     from src.methods import load_and_format_data
-    return load_and_format_data, os
+    return (load_and_format_data,)
 
 
 @app.cell
 def _(Path, os):
     project_name  = "2025-07-03_kpms-v2"
     model_name    = "2025-07-07_model-2"
-    kpms_dir      = Path(os.environ["UNSUPERVISED_AGING"] + "/data/kpms_projects")
-    poses_csv_dir = Path(os.environ["UNSUPERVISED_AGING"] + "/data/datasets/nature-aging_370/poses_csv")
+    kpms_dir      = Path(os.environ["UNSUPERVISED_AGING"]) / "data/kpms_projects"
+    poses_csv_dir = Path(os.environ["UNSUPERVISED_AGING"]) / "data/datasets/nature-aging_634/poses_csv"
 
     project_dir = kpms_dir / project_name
     return model_name, poses_csv_dir, project_dir
@@ -54,6 +61,26 @@ def _(Path, os):
 def _(kpms, model_name, project_dir):
     results = kpms.load_results(project_dir, model_name)
     return (results,)
+
+
+@app.cell
+def _(kpms, load_and_format_data, poses_csv_dir, project_dir):
+    config_fn = lambda: kpms.load_config(project_dir)
+    _, _, coordinates = load_and_format_data(poses_csv_dir, project_dir)
+    coordinates = {k: v[..., ::-1] for k, v in coordinates.items()}
+    return config_fn, coordinates
+
+
+@app.cell
+def _(coordinates, results):
+    _rm_key = []
+    for key in results.keys():
+        if key not in coordinates:
+            _rm_key.append(key)
+    for key in _rm_key:
+        del results[key]
+    len(results), len(coordinates) # should match
+    return
 
 
 @app.cell
@@ -86,18 +113,10 @@ def _(mo, np, results):
         print("n =", n)
         print("T shape:", T.shape)
         print("U shape:", U.shape)
-        return unique_syllables, T, U
+        return n, T, U
 
-    n, T, U = build_counts(results, 0.015)
+    n, T, U = build_counts(results, th=0.)
     return T, U, n
-
-
-@app.cell
-def _(kpms, load_and_format_data, poses_csv_dir, project_dir):
-    config_fn = lambda: kpms.load_config(project_dir)
-    _, _, coordinates = load_and_format_data(poses_csv_dir, project_dir)
-    coordinates = {k: v[..., ::-1] for k, v in coordinates.items()}
-    return
 
 
 @app.cell
@@ -164,6 +183,7 @@ def _(Callable, Dict, List, Set, T, Tuple, U, Union, default_cost, n, np):
     vame_cost_fn: CostFunc = lambda u_i, u_j, t_ij, t_ji: (u_i + u_j) / (t_ij + t_ji + _eps)
     alzh_cost_fn: CostFunc = lambda u_i, u_j, t_ij, t_ji: u_i + u_j / (t_ij + t_ji + _eps)
 
+    print(n, U.shape, T.shape)
     linkage = hierarchical_motif_tree(n, U, T, vame_cost_fn)
     return (linkage,)
 
@@ -182,9 +202,22 @@ def _():
 
 
 @app.cell
-def _():
-    # mo.md("trajectory-based syllable dendrogram")
-    # kpms.plot_similarity_dendrogram(coordinates, results, project_dir, model_name, **config_fn())
+def _(
+    Path,
+    config_fn,
+    coordinates,
+    kpms,
+    mo,
+    model_name,
+    os,
+    project_dir,
+    results,
+):
+    _tmp = config_fn()
+    _tmp["video_dir"] = Path(os.environ["UNSUPERVISED_AGING"]) / "data/datasets/nature-aging_634/videos"
+
+    mo.md("trajectory-based syllable dendrogram")
+    kpms.plot_similarity_dendrogram(coordinates, results, project_dir, model_name, **_tmp)
     return
 
 

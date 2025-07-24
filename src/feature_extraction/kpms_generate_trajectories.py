@@ -31,12 +31,21 @@ def main(
     print("--- LOADING DATA ---")
     config_fn = lambda: kpms.load_config(project_dir)
     _, _, coordinates = load_and_format_data(poses_csv_dir, project_dir)
+    coordinates = {k: v[..., ::-1] for k, v in coordinates.items()}
+
+    assert len(results) == len(coordinates)
+
+    _tmp = config_fn()
+    _tmp["video_dir"] = poses_csv_dir / "../videos"
+
+    print("--- GENERATING DENDROGRAM ---")
+    kpms.plot_similarity_dendrogram(coordinates, results, project_dir, model_name, **_tmp)
     
     print("--- GENERATING TRAJECTORY PLOTS ---")
-    kpms.generate_trajectory_plots(coordinates, results, project_dir, model_name, **config_fn())
+    kpms.generate_trajectory_plots(coordinates, results, project_dir, model_name, **_tmp)
 
-    # print("--- GENERATING GRID MOVIES ---")
-    # kpms.generate_grid_movies(results, project_dir, model_name, coordinates=coordinates, **config_fn())
+    print("--- GENERATING GRID MOVIES ---")
+    kpms.generate_grid_movies(results, project_dir, model_name, coordinates=coordinates, **_tmp)
 
 
 if __name__ == "__main__":

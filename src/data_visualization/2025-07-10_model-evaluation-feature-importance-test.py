@@ -5,7 +5,7 @@ app = marimo.App(width="full")
 
 
 @app.cell
-def _(mpl):
+def _():
     import json
     import numpy as np
     import os
@@ -16,15 +16,15 @@ def _(mpl):
     from sklearn.metrics import roc_auc_score
     from xgboost import XGBRegressor
 
-    mpl.style.use("default")
-    return Path, XGBRegressor, json, np, os, pd, shap
+    # mpl.style.use("default")
+    return Path, XGBRegressor, json, np, pd, shap
 
 
 @app.cell
-def _(Path, json, os, pd):
-    features_df_path = Path(os.environ["UNSUPERVISED_AGING"]) / "data/feature_matrices/2025-07-10_kpms-v2-supervised_feature-matrix.csv"
-    xcats_path       = Path(os.environ["UNSUPERVISED_AGING"]) / "data/feature_matrices/2025-07-10_kpms-v2-supervised_xcats.json"
-    results_df_path  = Path(os.environ["UNSUPERVISED_AGING"]) / "data/model_evaluation_results/2025-07-10_kpms-v2-supervised_results.csv"
+def _(Path, json, pd):
+    xcats_path       = Path("/projects/kumar-lab/miaod/projects/unsupervised-aging/data/feature_matrices/2025-07-23_xcats__combined_1126__2025-07-20_kpms-v4_150__2025-07-20_model-1.json")
+    features_df_path  = Path("/projects/kumar-lab/miaod/projects/unsupervised-aging/data/feature_matrices/2025-07-23_feature-matrix__combined_1126__2025-07-20_kpms-v4_150__2025-07-20_model-1.csv")
+    results_df_path = Path("/projects/kumar-lab/miaod/projects/unsupervised-aging/data/model_evaluation_results/2025-07-23_model-evaluation-results__combined_1126__2025-07-20_kpms-v4_150__2025-07-20_model-1.csv")
 
     features_df = pd.read_csv(features_df_path)
     results_df = pd.read_csv(results_df_path, low_memory=False)
@@ -60,20 +60,21 @@ def _(filt_results_df):
 def _(
     XGBRegressor,
     filt_results_df,
-    mean_squared_error,
     np,
-    r2_score,
     shap,
     test_mask,
     train_mask,
     xcats,
     xgb_hyperparameters,
 ):
+    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+    xcat = xcats["unsupervised"]
     target_col = "y_true"
-    X_train = filt_results_df.loc[train_mask, xcats["all"]]
+    X_train = filt_results_df.loc[train_mask, xcat]
     y_train = filt_results_df.loc[train_mask, target_col]
 
-    X_test  = filt_results_df.loc[test_mask,  xcats["all"]]
+    X_test  = filt_results_df.loc[test_mask,  xcat]
     y_test  = filt_results_df.loc[test_mask,  target_col]
 
     # ────────────────────────────────────────────────────────────────────────────────
@@ -146,11 +147,11 @@ def _(
 
     # — Distribution + direction —
     shap.summary_plot(shap_values, X_test)
+    return
 
-    # — One-off local explanation (row 0 as example) —
-    shap.plots.waterfall(
-        shap_values[0], feature_names=X_test.columns, max_display=15
-    )
+
+@app.cell
+def _():
     return
 
 

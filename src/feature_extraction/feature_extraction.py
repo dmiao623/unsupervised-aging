@@ -1,7 +1,7 @@
 import marimo
 
 __generated_with = "0.14.10"
-app = marimo.App(width="medium")
+app = marimo.App(width="full")
 
 
 @app.cell
@@ -26,36 +26,58 @@ def _():
     from typing import Any, Dict, Mapping, Optional, Sequence
 
     import keypoint_moseq as kpms
-    return (
-        Any,
-        Dict,
-        Mapping,
-        Optional,
-        Path,
-        Sequence,
-        json,
-        kpms,
-        mo,
-        np,
-        operator,
-        os,
-        pd,
-        reduce,
-    )
+    return Any, Dict, Sequence, json, kpms, mo, np, operator, pd, reduce
 
 
 @app.cell
-def _(Path, os):
-    project_name  = "2025-07-16_kpms-v3"
-    model_name    = "2025-07-16_model-4"
-    kpms_dir      = Path(os.environ["UNSUPERVISED_AGING"] + "/data/kpms_projects")
-    dataset_dir   = Path(os.environ["UNSUPERVISED_AGING"] + "/data/datasets/geroscience_492/")
-    poses_csv_dir = dataset_dir / "poses_csv"
+def _():
+    # unsupervised_aging_dir = Path(os.environ["UNSUPERVISED_AGING"])
 
-    supervised_features_path = Path(os.environ["UNSUPERVISED_AGING"]) / "data/archive/B6DO_video.csv"
+    # project_name  = "2025-07-03_kpms-v2"
+    # model_name    = "2025-07-07_model-2"
+    # kpms_dir      = unsupervised_aging_dir / "data/kpms_projects"
+    # dataset_dir   = unsupervised_aging_dir / "data/datasets/nature-aging_634/"
+    # poses_csv_dir = dataset_dir / "poses_csv"
 
-    project_dir = kpms_dir / project_name
-    return dataset_dir, model_name, project_dir, supervised_features_path
+    # supervised_features_path = unsupervised_aging_dir / "data/archive/B6DO_video.csv"
+    # adj_metadata_path = unsupervised_aging_dir / "data/adj_metadata_sheets/nature-aging_634_adj_metadata.csv"
+
+    # project_dir = kpms_dir / project_name
+    return
+
+
+@app.cell
+def _():
+    # unsupervised_aging_dir = Path(os.environ["UNSUPERVISED_AGING"])
+
+    # project_name  = "2025-07-16_kpms-v3"
+    # model_name    = "2025-07-16_model-4"
+    # kpms_dir      = unsupervised_aging_dir / "data/kpms_projects"
+    # dataset_dir   = unsupervised_aging_dir / "data/datasets/geroscience_492/"
+    # poses_csv_dir = dataset_dir / "poses_csv"
+
+    # supervised_features_path = unsupervised_aging_dir / "data/archive/B6DO_video.csv"
+    # adj_metadata_path = unsupervised_aging_dir / "data/adj_metadata_sheets/geroscience_492_adj_metadata.csv"
+
+    # project_dir = kpms_dir / project_name
+    return
+
+
+@app.cell
+def _():
+    # unsupervised_aging_dir = Path(os.environ["UNSUPERVISED_AGING"])
+
+    # project_name  = "2025-07-20_kpms-v4_150"
+    # model_name    = "2025-07-20_model-1"
+    # kpms_dir      = unsupervised_aging_dir / "data/kpms_projects"
+    # dataset_dir   = unsupervised_aging_dir / "data/datasets/combined_1126/"
+    # poses_csv_dir = dataset_dir / "poses_csv"
+
+    # supervised_features_path = unsupervised_aging_dir / "data/archive/B6DO_video.csv"
+    # adj_metadata_path = unsupervised_aging_dir / "data/adj_metadata_sheets/combined_1126_adj_metadata.csv"
+
+    # project_dir = kpms_dir / project_name
+    return
 
 
 @app.cell
@@ -135,8 +157,8 @@ def _(Dict, Sequence, mo, np, results):
     return (syllable_frequency_statistics,)
 
 
-@app.cell
-def _(Dict, Mapping, Optional, Sequence, mo, np, results):
+app._unparsable_cell(
+    r"""
     def _get_metasyllable_transition_matrix(
         grouped_syllables: Optional[Mapping[str, Sequence[int]]] = None,
         *,
@@ -146,7 +168,7 @@ def _(Dict, Mapping, Optional, Sequence, mo, np, results):
         if grouped_syllables is None:
             grouped_syllables = {}
 
-        sequences = [info["syllable"] for info in results.values()]
+        sequences = [info[\"syllable\"] for info in results.values()]
         vocab_size = max(s for seq in sequences for s in seq) + 1
         all_indices = set(range(vocab_size))
 
@@ -154,23 +176,23 @@ def _(Dict, Mapping, Optional, Sequence, mo, np, results):
         for name, idxs in grouped_syllables.items():
             bad = set(idxs) - all_indices
             if bad:
-                raise ValueError(f"Group '{name}' contains invalid indices {sorted(bad)}.")
+                raise ValueError(f\"Group '{name}' contains invalid indices {sorted(bad)}.\")
             if seen.intersection(idxs):
-                raise ValueError("Duplicate indices detected across groups.")
+                raise ValueError(\"Duplicate indices detected across groups.\")
             seen.update(idxs)
 
         if not ignore_unknown:
             unknown = sorted(all_indices - seen)
             if unknown:
                 grouped_syllables = dict(grouped_syllables)
-                grouped_syllables["unknown"] = unknown
+                grouped_syllables[\"unknown\"] = unknown
 
         names      = list(grouped_syllables.keys())
         idx_sets   = [set(grouped_syllables[n]) for n in names]
         g          = len(names)
-        feats      = {f"transition_matrix_{a}_{b}": [] for a in names for b in names if a != b}
+        feats      = {f\"transition_matrix_{a}_{b}\": [] for a in names for b in names if a != b}
         if include_frequencies:
-            feats.update({f"metasyllable_frequency_{n}": [] for n in names})
+            feats.update({f\"metasyllable_frequency_{n}\": [] for n in names})
 
         idx_to_group = {}
         for gi, s in enumerate(idx_sets):
@@ -178,7 +200,7 @@ def _(Dict, Mapping, Optional, Sequence, mo, np, results):
                 idx_to_group[idx] = gi
 
         for _, info in mo.status.progress_bar(results.items()):
-            seq = info["syllable"]
+            seq = info[\"syllable\"]
             G = np.zeros((g, g), dtype=float)
             for a, b in zip(seq[:-1], seq[1:]):
                 if a in idx_to_group and b in idx_to_group:
@@ -191,7 +213,7 @@ def _(Dict, Mapping, Optional, Sequence, mo, np, results):
             for i, ai in enumerate(names):
                 for j, bj in enumerate(names):
                     if ai != bj:
-                        feats[f"transition_matrix_{ai}_{bj}"].append(G[i, j])
+                        feats[f\"transition_matrix_{ai}_{bj}\"].append(G[i, j])
 
             if include_frequencies:
                 counts = np.zeros(g, dtype=int)
@@ -201,16 +223,41 @@ def _(Dict, Mapping, Optional, Sequence, mo, np, results):
                 total_tokens = len(seq)
                 freqs = counts / total_tokens if total_tokens else counts
                 for i, name in enumerate(names):
-                    feats[f"metasyllable_frequency_{name}"].append(freqs[i])
+                    feats[f\"metasyllable_frequency_{name}\"].append(freqs[i])
         return feats
 
-    grouped_syllable_transition_matrix = _get_metasyllable_transition_matrix({
-        "walking":    [5, 13],
-        "turning":    [4, 9, 17, 19],
-        "rearing":    [0, 2, 7, 8, 10, 11, 16, 21],
-        "stationary": [1, 3, 6, 12, 15, 18, 22], 
-    })
-    return
+
+    # nature-aging_634
+    # _metasyllable_groupings = {
+    #     \"kpms_dendrogram_0\": [0, 2, 10, 54, 35, 9, 30, 16, 26, 20, 6, 15],
+    #     \"kpms_dendrogram_1\": [24, 42, 52, 50, 48, 57, 33, 38, 60, 12, 58, 22, 43],
+    #     \"kpms_dendrogram_2\": [19, 59, 1, 3, 14, 18, 34, 5, 7, 46, 40, 4, 11, 45],
+    #     \"kpms_dendrogram_3\": [13, 8, 17, 39, 51, 21, 36, 61, 31, 49, 28, 44, 55, 37, 25, 32, 27, 56],
+    #     \"kpms_dendrogram_4\": [53, 62, 29, 41, 23, 47]
+    # }
+
+    # geroscience_492
+    # _metasyllable_groupings = {
+    #     \"kpms_dendogram_0\": [12, 20, 28, 14, 26],
+    #     \"kpms_dendogram_1\": [33, 23, 39, 13, 3, 11, 18],
+    #     \"kpms_dendogram_2\": [24, 9, 6, 25, 15, 21, 16, 35, 2, 10, 17],
+    #     \"kpms_dendogram_3\": [4, 34, 22, 30, 27, 29, 32, 19],
+    #     \"kpms_dendogram_4\": [5, 7, 8, 43, 55, 0, 1, 31],
+    # }
+
+    # combined_1126
+    _metasyllable_groupings = {
+    #     \"kpms_dendrogram_0\": [41, 11, 23, 39, 22, 37, 28, 32, 5, 34, 1, 31, 20, 13, 25],
+    #     \"kpms_dendrogram_1\": [45, 46],
+    #     \"kpms_dendrogram_2\": [44, 50, 4, 2, 18, 53, 24, 8, 35, 14, 15, 10, 17, 26, 30, 7, 43, 9, 42, 48, 6, 29],
+    #     \"kpms_dendrogram_3\": [47, 27, 36],
+    #     \"kpms_dendrogram_4\": [40, 21, 12, 33, 16, 0, 3, 19, 38],
+    # }
+
+    kpms_dendrogram_metasyllable_transition_matrix = _get_metasyllable_transition_matrix(_metasyllable_groupings, ignore_unknown=True, include_frequencies=False)
+    """,
+    name="_"
+)
 
 
 @app.cell
@@ -218,6 +265,7 @@ def _(
     Any,
     Dict,
     Sequence,
+    kpms_dendrogram_metasyllable_transition_matrix,
     latent_embedding_statistics,
     operator,
     pd,
@@ -235,115 +283,80 @@ def _(
     unsupervised_features_df = _merge_features([
         latent_embedding_statistics, 
         syllable_frequency_statistics,
-        # grouped_syllable_transition_matrix,
+        kpms_dendrogram_metasyllable_transition_matrix
     ])
     unsupervised_features_df
     return (unsupervised_features_df,)
 
 
 @app.cell
-def _(dataset_dir, pd, unsupervised_features_df):
+def _(adj_metadata_path, pd, unsupervised_features_df):
     ### merge with metadata matrix (should have same number of rows)
 
-    metadata_path = dataset_dir / "metadata.csv"
-    metadata_df = pd.read_csv(metadata_path)
+    metadata_df = pd.read_csv(adj_metadata_path)
     metadata_unsupervised_features_df = metadata_df.merge(unsupervised_features_df, on="name", how="inner")
     metadata_unsupervised_features_df
     return (metadata_unsupervised_features_df,)
 
 
 @app.cell
-def _(metadata_unsupervised_features_df):
-    left_key = ["mouse_id", "sex", "fi"]
-
-    dups_left = (
-        metadata_unsupervised_features_df[
-            metadata_unsupervised_features_df.duplicated(left_key, keep=False)
-        ]
-        .sort_values(left_key)            # nice, readable order
-    )
-
-    dups_left
-    return
-
-
-@app.cell
 def _(metadata_unsupervised_features_df, pd, supervised_features_path):
-    ### merge with supervised feature matrix
-
     supervised_features_df = pd.read_csv(supervised_features_path)
     supervised_columns = [
         col for col in supervised_features_df.columns if col not in ["NetworkFilename", "PoseFilename", "Batch", "Tester", "AgeGroup", "MouseID", "Strain", "Diet", "Weight", "Sex", "AgeW", "AgeAtVid", "CFI_norm", "FLL", "score"]
     ]
-    supervised_features_df["name"] = (
-        supervised_features_df["NetworkFilename"]
-          .str.replace("/", "__")
-          .str.replace(r"\.avi$", "", regex=True)
-    )
 
-    matched_features_df = metadata_unsupervised_features_df.merge(
-        supervised_features_df, 
-        on="name",
-        how="inner"
+    _filename_to_name = {
+        row["name"].split("__")[-1]: row["name"] for _, row in metadata_unsupervised_features_df.iterrows()
+    }
+    _names = []
+    for _, row in supervised_features_df.iterrows():
+        if row["PoseFilename"].startswith("/"):
+            _names.append(_filename_to_name.get(row["PoseFilename"][1:], pd.NA))
+        else:
+            _names.append(row["NetworkFilename"].removesuffix(".avi").replace("/", "__"))
+    supervised_features_df["name"] = _names
+    supervised_features_df = supervised_features_df.drop_duplicates()
+
+    ### drop only duplicated row (unused)
+    _mask = (
+        (supervised_features_df["name"] == "LL3-B2B__2020-01-02_SPD__LL3-4_AgedB6-0842")
+        & (supervised_features_df["AgeW"] == 20)
     )
-    matched_features_df = (matched_features_df.loc[matched_features_df["age"].sub(matched_features_df["AgeAtVid"]).abs().le(1)])
-    matched_features_df = matched_features_df[list(metadata_unsupervised_features_df.columns) + supervised_columns].copy()
-    matched_features_df
-    return matched_features_df, supervised_columns, supervised_features_df
+    supervised_features_df.drop(supervised_features_df[_mask].index, inplace=True)
+
+    supervised_features_df = supervised_features_df[["name"] + supervised_columns].copy()
+
+    supervised_features_df
+    return supervised_columns, supervised_features_df
 
 
 @app.cell
 def _(metadata_unsupervised_features_df, supervised_features_df):
-    names_unsup = set(metadata_unsupervised_features_df['name'])
-    names_sup   = set(supervised_features_df['name'])
-
-    missing_from_sup = names_unsup - names_sup
-
-    unmatched_metadata_unsupervised_features_df = metadata_unsupervised_features_df[
-        metadata_unsupervised_features_df["name"].isin(missing_from_sup)
-    ].copy()
-    unmatched_metadata_unsupervised_features_df["NetworkFilename"] = (
-        "/" + unmatched_metadata_unsupervised_features_df["name"]
-            .str.split("__")
-            .str[-1]
-            .astype(str) + ".avi"
-    )
-    print(unmatched_metadata_unsupervised_features_df["NetworkFilename"])
-
-    unmatched_features_df = unmatched_metadata_unsupervised_features_df.merge(
-        supervised_features_df, 
-        on="NetworkFilename",
+    features_df = metadata_unsupervised_features_df.merge(
+        supervised_features_df,
+        on="name",
         how="inner"
     )
-    unmatched_features_df
-    return (unmatched_features_df,)
-
-
-@app.cell
-def _(matched_features_df, pd, unmatched_features_df):
-    features_df = pd.concat((matched_features_df, unmatched_features_df), axis=0)
     features_df
     return (features_df,)
 
 
 @app.cell
 def _(
+    kpms_dendrogram_metasyllable_transition_matrix,
     latent_embedding_statistics,
     supervised_columns,
     syllable_frequency_statistics,
 ):
     _all_unsupervised_columns = (
         list(latent_embedding_statistics.keys()) + 
-        list(syllable_frequency_statistics.keys())
-        # list(grouped_syllable_transition_matrix.keys())
+        list(syllable_frequency_statistics.keys()) +
+        list(kpms_dendrogram_metasyllable_transition_matrix.keys())
     )
 
     Xcats = {
-        "kpms-v2_all": _all_unsupervised_columns,
-        # "kpms-v2_nonmeta": (
-        #    list(latent_embedding_statistics.keys()) + 
-        #    list(syllable_frequency_statistics.keys())
-        #),
+        "unsupervised": _all_unsupervised_columns,
         "supervised": supervised_columns,
         "all": _all_unsupervised_columns + supervised_columns
     }
@@ -351,10 +364,39 @@ def _(
 
 
 @app.cell
-def _(Path, Xcats, features_df, json, os):
-    feature_matrix_output_dir = Path(os.environ["UNSUPERVISED_AGING"] + "/data/feature_matrices")
-    feature_matrix_output_path = feature_matrix_output_dir / "2025-07-16_kpms-v3-supervised_feature-matrix.csv"
-    xcats_output_path = feature_matrix_output_dir / "2025-07-16_kpms-v3-supervised_xcats.json"
+def _(features_df):
+    # features_df.drop("fll", axis=1, inplace=True)
+    rows_with_na = features_df[features_df.isna().any(axis=1)].copy()
+
+    rows_with_na["na_cols"] = (
+        rows_with_na
+        .isna()
+        .apply(lambda r: [c for c, is_na in r.items() if is_na], axis=1)
+    )
+
+    rows_with_na["na_cols"]
+    return
+
+
+@app.cell
+def _(
+    Xcats,
+    dataset_dir,
+    features_df,
+    json,
+    model_name,
+    project_name,
+    unsupervised_aging_dir,
+):
+    _uid = f"{dataset_dir.name}__{project_name}__{model_name}"
+
+    from datetime import datetime
+    current_datetime = datetime.now()
+    formatted_date = current_datetime.strftime("%Y-%m-%d")
+
+    feature_matrix_output_dir  = unsupervised_aging_dir / "data/feature_matrices"
+    feature_matrix_output_path = feature_matrix_output_dir / f"{formatted_date}_feature-matrix__{_uid}.csv"
+    xcats_output_path          = feature_matrix_output_dir / f"{formatted_date}_xcats__{_uid}.json"
 
     features_df.to_csv(feature_matrix_output_path)
     with xcats_output_path.open("w") as f:
