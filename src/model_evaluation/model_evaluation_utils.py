@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from copy import deepcopy
+from pathlib import Path
 from sklearn.base import BaseEstimator, clone
 from sklearn.model_selection import BaseCrossValidator, GroupKFold
 from sklearn.model_selection._search import BaseSearchCV
@@ -176,6 +177,7 @@ def compute_nested_kfold_validation(
     n_jobs: int                                       = -1,
     search_kwargs: Optional[MutableMapping[str, Any]] = None,
     model_name: str                                   = "",
+    seed: int                                         = 623,
 ):
     """
     Perform nested cross-validation with group-aware splitting and hyperparameter tuning.
@@ -230,7 +232,7 @@ def compute_nested_kfold_validation(
         for both training and test splits in each outer fold.
     """
 
-    outer_cv = GroupKFold(n_splits=outer_n_splits)
+    outer_cv = GroupKFold(n_splits=outer_n_splits, shuffle=True, random_state=seed)
     feature_names = (
         list(X.columns) if hasattr(X, "columns") else [f"feat_{i}" for i in range(X.shape[1])]
     )
@@ -239,7 +241,7 @@ def compute_nested_kfold_validation(
     search_kwargs = search_kwargs or {}
 
     def _run_one_fold(fold_idx: int, train_idx: np.ndarray, test_idx: np.ndarray):
-        sample_ids_train, sample_ids_test = train_idx, test_idx
+        sample_idx_train, sample_idx_test = train_idx, test_idx
 
         X_train = X.iloc[train_idx] if hasattr(X, "iloc") else X[train_idx]
         X_test  = X.iloc[test_idx]  if hasattr(X, "iloc") else X[test_idx]
@@ -258,7 +260,7 @@ def compute_nested_kfold_validation(
             grid = search_ctor(
                 estimator_ctor(),
                 param_grid=param_grid,
-                cv=GroupKFold(n_splits=inner_n_splits),
+                cv=GroupKFold(n_splits=inner_n_splits, shuffle=True, random_state=seed),
                 scoring=scoring,
                 n_jobs=n_jobs,
                 **search_kwargs,
@@ -271,20 +273,20 @@ def compute_nested_kfold_validation(
         y_pred_train = best_model.predict(X_train)
         y_pred_test  = best_model.predict(X_test)
 
-        def _make_df(X_block, y_block, y_pred_block, split_label, sample_ids_block):
+        def _make_df(X_block, y_block, y_pred_block, split_label, sample_idx_block):
             base = pd.DataFrame(X_block, columns=feature_names)
             base["y_true"]    = y_block
             base["y_pred"]    = y_pred_block
             base["fold"]      = fold_idx
             base["split"]     = split_label
-            base["sample_id"] = sample_ids_block
+            base["sample_idx"] = sample_idx_block
             for p_name, p_val in best_params.items():
                 base[p_name] = str(p_val)
             return base
 
         return (
-            _make_df(X_train, y_train, y_pred_train, "train", sample_ids_train),
-            _make_df(X_test,  y_test,  y_pred_test,  "test",  sample_ids_test),
+            _make_df(X_train, y_train, y_pred_train, "train", sample_idx_train),
+            _make_df(X_test,  y_test,  y_pred_test,  "test",  sample_idx_test),
         )
 
     for fold, (tr_idx, te_idx) in enumerate(

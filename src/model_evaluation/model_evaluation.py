@@ -11,6 +11,7 @@ Usage:
         --xcat_json <path_to_xcat_json> \
         --output_path <path_to_output_csv> \
         [--seed <int>] \
+        [--n_repeats <int>] \
         [--outer_n_splits <int>] \
         [--inner_n_splits <int>] \
         [--cpu_cores <int>] \
@@ -48,12 +49,18 @@ def main(
     xcat_json: str,
     output_path: str,
     seed: int,
+    n_repeats: int,
     outer_n_splits: int,
     inner_n_splits: int,
     cpu_cores: int,
     X_cats: Sequence[str],
-    y_cats: Sequence[str]
+    y_cats: Sequence[str],
+    export_all: bool,
+    export_individual: bool,
 ):
+
+    assert export_all or export_individual, "Nothing to export!"
+    output_path = Path(output_path)
 
     regression_models = [
         partial(
@@ -203,24 +210,36 @@ def main(
 
             print(f"\n(X_cat = {X_cat}, y_cat = {y_cat}):")
             for model in regression_models:
-                df = model(
-                    X = X,
-                    y = y,
-                    groups = groups,
-                    outer_n_splits = outer_n_splits,
-                    inner_n_splits = inner_n_splits,
-                    n_jobs = cpu_cores,
-                ).copy()
+                dfs = []
+                for repeat in range(n_repeats):
+                    temp_df = model(
+                        X = X,
+                        y = y,
+                        groups = groups,
+                        outer_n_splits = outer_n_splits,
+                        inner_n_splits = inner_n_splits,
+                        n_jobs = cpu_cores,
+                        seed = seed + repeat,
+                    )
+                    temp_df["repeat"] = repeat
+                    dfs.append(temp_df)
+
+                df = pd.concat(dfs, ignore_index=True)
 
                 df["X_cat"] = X_cat
                 df["y_cat"] = y_cat
                 df["model"] = model.keywords["model_name"]
 
                 all_runs.append(df)
+                if export_individual:
+                    temp_path = output_path.parent / f"{output_path.stem}__{X_cat}__{y_cat}{output_path.suffix}"
+                    df.to_csv(temp_path)
+                    print(f"Exported individual dataframe to {temp_path}.")
 
-    results_df = pd.concat(all_runs, ignore_index=True)
-    results_df.to_csv(output_path)
-    print(f"Exported result dataframe to {output_path}.")
+    if export_all:
+        results_df = pd.concat(all_runs, ignore_index=True)
+        results_df.to_csv(output_path)
+        print(f"Exported result dataframe to {output_path}.")
 
             
 if __name__ == "__main__":
@@ -235,6 +254,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--seed", type=int, default=623,
                         help="Random seed value (default: 623)")
+    parser.add_argument("--n_repeats", type=int, default=1,
+                        help="Number of times to run cross validation (default: 1)")
     parser.add_argument("--outer_n_splits", type=int, default=10,
                         help="Number of outer CV splits (default: 10)")
     parser.add_argument("--inner_n_splits", type=int, default=5,
@@ -246,6 +267,11 @@ if __name__ == "__main__":
     parser.add_argument("--y_cats", nargs="+", default=["age", "fi"],
                         help="List of strings for y categorical features (either \"fi\" or \"age\"; default: both)")
 
+    parser.add_argument("--export_all", action="store_true",
+                        help="Export combined results as a dataframe")
+    parser.add_argument("--export_individual", action="store_true",
+                        help="Export each dataframe individually in (X_cat, y_cat) group")
+
     args = parser.parse_args()
 
     print("\n--- RUN CONFIG ---")
@@ -253,5 +279,6 @@ if __name__ == "__main__":
         print(f"{k:20}: {v}")
     print("------------------\n")
 
-    main(args.input_csv, args.xcat_json, args.output_path, args.seed, args.outer_n_splits,
-         args.inner_n_splits, args.cpu_cores, args.X_cats, args.y_cats)
+    main(args.input_csv, args.xcat_json, args.output_path, args.seed, args.n_repeats,
+         args.outer_n_splits, args.inner_n_splits, args.cpu_cores, args.X_cats, args.y_cats,
+         args.export_all, args.export_individual)
