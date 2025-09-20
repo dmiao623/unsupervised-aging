@@ -31,6 +31,7 @@ import numpy as np
 import pandas as pd
 
 from functools import partial
+from pathlib import Path
 from sklearn.experimental import enable_halving_search_cv
 from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
 from sklearn.pipeline import Pipeline
@@ -209,8 +210,8 @@ def main(
             y = data_df[y_cat]
 
             print(f"\n(X_cat = {X_cat}, y_cat = {y_cat}):")
+            dfs = []
             for model in regression_models:
-                dfs = []
                 for repeat in range(n_repeats):
                     temp_df = model(
                         X = X,
@@ -222,19 +223,18 @@ def main(
                         seed = seed + repeat,
                     )
                     temp_df["repeat"] = repeat
+                    temp_df["model"] = model.keywords["model_name"]
                     dfs.append(temp_df)
 
-                df = pd.concat(dfs, ignore_index=True)
+            df = pd.concat(dfs, ignore_index=True)
 
-                df["X_cat"] = X_cat
-                df["y_cat"] = y_cat
-                df["model"] = model.keywords["model_name"]
-
-                all_runs.append(df)
-                if export_individual:
-                    temp_path = output_path.parent / f"{output_path.stem}__{X_cat}__{y_cat}{output_path.suffix}"
-                    df.to_csv(temp_path)
-                    print(f"Exported individual dataframe to {temp_path}.")
+            df["X_cat"] = X_cat
+            df["y_cat"] = y_cat
+            all_runs.append(df)
+            if export_individual:
+                temp_path = output_path.parent / f"{output_path.stem}__{X_cat}__{y_cat}{output_path.suffix}"
+                df.to_csv(temp_path)
+                print(f"Exported individual dataframe to {temp_path}.")
 
     if export_all:
         results_df = pd.concat(all_runs, ignore_index=True)

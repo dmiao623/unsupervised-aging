@@ -18,7 +18,7 @@ def _():
 
     from pathlib import Path
     from typing import Any, Callable, Dict, Mapping, Optional, Tuple, Sequence
-    from scipy.stats import rankdata
+    from scipy.stats import rankdata, ttest_ind
     from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
     from xgboost import XGBRegressor
 
@@ -41,6 +41,7 @@ def _():
         rankdata,
         shap,
         sns,
+        ttest_ind,
     )
 
 
@@ -75,10 +76,90 @@ def _(Callable, Tuple, mean_absolute_error, mean_squared_error, pd, r2_score):
     return (Metric_t,)
 
 
-@app.cell
-def _(Metric_t, Optional, Tuple, data, np, pd, plt, sns):
+@app.cell(hide_code=True)
+def _(data, np, pd, plt, sns):
     def plot_foldwise_errors(
-        y_cat: str,
+        y_cat,
+        metric,
+        *,
+        model=None,
+        figsize=(10, 6),
+        x_cats=("unsupervised", "supervised", "all"),
+        palette="Set1",
+        title="",
+        y_label="Error",
+        x_label="Group",
+        repeat_col="repeat",
+        rename_map=None,
+        legend=True,
+        legend_inside=False,
+    ):
+        plot_data = []
+        metric_fn, metric_name, is_loss = metric
+
+        for label, dcs in zip(("B6J", "DO", "B6J/DO"), data.values()):
+            results_all = dcs["results"].query('split == "test" and y_cat == @y_cat')
+            for X_cat in x_cats:
+                if model is None:
+                    best_model, best_val = None, None
+                    for m in results_all["model"].unique():
+                        vals = []
+                        results_model = results_all.query('model == @m and X_cat == @X_cat')
+                        for fold in results_model["fold"].unique():
+                            fold_subset = results_model[results_model["fold"] == fold]
+                            for rep in fold_subset[repeat_col].unique():
+                                fr = fold_subset[fold_subset[repeat_col] == rep]
+                                vals.append(metric_fn(fr["y_true"], fr["y_pred"]))
+                        if vals:
+                            med = np.median(vals)
+                            if best_val is None or (med < best_val if is_loss else med > best_val):
+                                best_val, best_model = med, m
+                    results = results_all.query('model == @best_model and X_cat == @X_cat')
+                else:
+                    results = results_all.query('model == @model and X_cat == @X_cat')
+
+                for fold in results["fold"].unique():
+                    fold_subset = results[results["fold"] == fold]
+                    for rep in fold_subset[repeat_col].unique():
+                        fr = fold_subset[fold_subset[repeat_col] == rep]
+                        err = metric_fn(fr["y_true"], fr["y_pred"])
+                        plot_data.append({y_label: err, x_label: label, "X_cat": X_cat})
+
+        df_plot = pd.DataFrame(plot_data)
+        plt.figure(figsize=figsize)
+        ax = sns.boxplot(
+            data=df_plot,
+            x=x_label,
+            y=y_label,
+            hue="X_cat",
+            palette=palette,
+            flierprops={"marker": "."},
+        )
+        if legend:
+            handles, labels = ax.get_legend_handles_labels()
+            labels = [rename_map.get(l, l) if rename_map else l for l in labels]
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+            if legend_inside:
+                ax.legend(handles, labels, loc="upper left")
+            else:
+                ax.legend(handles, labels, loc="center left", bbox_to_anchor=(1, 0.5), frameon=False)
+        else:
+            leg = ax.get_legend()
+            if leg:
+                leg.remove()
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+        plt.title(title)
+        plt.tight_layout()
+        plt.show()
+
+    return
+
+
+@app.cell(hide_code=True)
+def _(Metric_t, Optional, Tuple, data, np, pd, plt, sns):
+    def plot_single_boxplot_by_xcat(
         metric: Metric_t,
         *,
         model: Optional[str]     = None,
@@ -87,51 +168,45 @@ def _(Metric_t, Optional, Tuple, data, np, pd, plt, sns):
         palette: str             = "Set1",
         title: str               = "",
         y_label: str             = "Error",
-        x_label: str             = "Group",
+        x_label: str             = "Input Type",
+        show_x_labels: bool      = True,
+        repeat_col: str          = "repeat",
     ) -> None:
         plot_data = []
         metric_fn, metric_name, is_loss = metric
+        results_all = data["geroscience_492"]["results"].query('split == "test" and y_cat == "fll"')
 
-        for label, dcs in zip(("B6J", "DO", "B6J/DO"), data.values()):
-            results_all = dcs["results"].query('split == "test" and y_cat == @y_cat')
+        for X_cat in x_cats:
+            if model is None:
+                best_model, best_val = None, None
+                for m in results_all["model"].unique():
+                    vals = []
+                    rm = results_all.query('model == @m and X_cat == @X_cat')
+                    for fold in rm["fold"].unique():
+                        fs = rm[rm["fold"] == fold]
+                        for rep in fs[repeat_col].unique():
+                            fr = fs[fs[repeat_col] == rep]
+                            vals.append(metric_fn(fr["y_true"], fr["y_pred"]))
+                    if vals:
+                        med = np.median(vals)
+                        if best_val is None or (med < best_val if is_loss else med > best_val):
+                            best_val, best_model = med, m
+                results = results_all.query('model == @best_model and X_cat == @X_cat')
+            else:
+                results = results_all.query('model == @model and X_cat == @X_cat')
 
-            for X_cat in x_cats:
-                if model is None:
-                    best_model = None
-                    best_value = None
-
-                    for m in results_all["model"].unique():
-                        results_model = results_all.query('model == @m and X_cat == @X_cat')
-                        values = []
-                        for fold in results_model["fold"].unique():
-                            fold_data = results_model[results_model["fold"] == fold]
-                            val = metric_fn(fold_data["y_true"], fold_data["y_pred"])
-                            values.append(val)
-
-                        if values:
-                            median_val = np.median(values)
-                            if best_value is None or (median_val < best_value if is_loss else median_val > best_value):
-                                best_value = median_val
-                                best_model = m
-
-                    print(f"[DEBUG] Selected model for group='{label}', X_cat='{X_cat}': {best_model}")
-                    results = results_all.query('model == @best_model and X_cat == @X_cat')
-                else:
-                    results = results_all.query('model == @model and X_cat == @X_cat')
-
-                for fold in results["fold"].unique():
-                    fold_data = results[results["fold"] == fold]
-                    err = metric_fn(fold_data["y_true"], fold_data["y_pred"])
-                    plot_data.append({
-                        y_label: err,
-                        x_label: label,
-                        "X_cat": X_cat
-                    })
+            for fold in results["fold"].unique():
+                fs = results[results["fold"] == fold]
+                for rep in fs[repeat_col].unique():
+                    fr = fs[fs[repeat_col] == rep]
+                    plot_data.append({y_label: metric_fn(fr["y_true"], fr["y_pred"]), x_label: X_cat})
 
         df_plot = pd.DataFrame(plot_data)
-        plt.figure(figsize=figsize)
-
-        sns.boxplot(data=df_plot, x=x_label, y=y_label, hue="X_cat", palette=palette)
+        plt.figure(figsize=figsize, dpi=300)
+        sns.boxplot(data=df_plot, x=x_label, y=y_label, palette=palette)
+        if not show_x_labels:
+            plt.xticks([])
+            plt.xlabel("")
         plt.title(title)
         plt.tight_layout()
         plt.show()
@@ -139,7 +214,7 @@ def _(Metric_t, Optional, Tuple, data, np, pd, plt, sns):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(Optional, Tuple, XGBRegressor, data, mo, np, pd, plt, shap, sns):
     def plot_shap_mean_abs_prediction(
         dataset_label: str,
@@ -226,125 +301,103 @@ def _(Optional, Tuple, XGBRegressor, data, mo, np, pd, plt, shap, sns):
     return
 
 
-@app.cell
-def _(Optional, Tuple, XGBRegressor, data, mo, np, pd, plt, rankdata, shap):
+@app.cell(hide_code=True)
+def _(Optional, Tuple, XGBRegressor, data, np, pd, plt, rankdata, shap):
     def plot_shap_summary_dot(
         dataset_label: str,
         X_cat: str,
         y_cat: str,
         *,
         top_n: Optional[int]                 = None,
+        feat_prefix: str                     = "",
         model: str                           = "XGBoost",
         figsize: Tuple[int, int]             = (8, 6),
         title: str                           = "",
         y_label: str                         = "Feature",
         x_label: str                         = "SHAP value",
         x_lim: Optional[Tuple[float, float]] = None,
-        cbar_label: str                      = "Feature Value Percentile"
+        cbar_label: str                      = "Feature Value Percentile",
+        font_size: int                       = 10
     ) -> None:
         results = data[dataset_label]["results"].query(
-            'split == "test" and model == @model and X_cat == @X_cat and y_cat == @y_cat'
+            'split == "test" and model == @model and X_cat == @X_cat and y_cat == @y_cat and repeat == 1'
         )
         features = data[dataset_label]["xcats"][X_cat]
-
-        xgb_hyperparameters = [
-            ("model__n_estimators", int),
-            ("model__learning_rate", float),
-            ("model__max_depth", int),
-            ("model__subsample", float),
-            ("model__colsample_bytree", float),
-            ("model__min_child_weight", float),
-            ("model__gamma", float),
-            ("model__reg_alpha", float),
-            ("model__reg_lambda", float)
-        ]
-
+        type_map = {
+            "n_estimators": int, "max_depth": int, "learning_rate": float, "subsample": float,
+            "colsample_bytree": float, "min_child_weight": float, "gamma": float,
+            "reg_alpha": float, "reg_lambda": float
+        }
         num_folds = max(results["fold"]) + 1
-        print(f"[DEBUG] Detected {num_folds} validation folds.")
-    
-        all_shap_values = []
-        all_feature_values = []
-        for fold in mo.status.progress_bar(range(num_folds)):
-            train_mask = results["fold"] != fold
-            test_mask  = results["fold"] == fold
-
-            X_train = results.loc[train_mask, features]
-            y_train = results.loc[train_mask, "y_true"]
-
-            X_test  = results.loc[test_mask, features]
-            y_test  = results.loc[test_mask, "y_true"]
-
-            hp_rows = results.loc[test_mask, [name for name, _ in xgb_hyperparameters]].drop_duplicates()
-            if len(hp_rows) != 1:
-                raise ValueError(f"Expected a single hyper-parameter row for the test fold but found {len(hp_rows)}.")
-            params = hp_rows.iloc[0].to_dict()
-            for param_name, param_type in xgb_hyperparameters:
-                params[param_name] = param_type(params[param_name])
-            params = {k.replace("model__", ""): v for k, v in params.items()}
-
-            model = XGBRegressor(**params)
-            model.fit(X_train, y_train)
-
-            explainer = shap.Explainer(model)
-            shap_vals = explainer(X_test)
-            all_shap_values.append(shap_vals.values)
-            all_feature_values.append(X_test)
-
-        shap_matrix = np.vstack(all_shap_values)
-        feature_matrix = pd.concat(all_feature_values, axis=0)
-        feature_names = features
-
-        mean_abs_shap = np.abs(shap_matrix).mean(axis=0)
-        feature_order = np.argsort(mean_abs_shap)[::-1]
+        all_shap, all_X = [], []
+        for fold in range(num_folds):
+            train_mask, test_mask = results["fold"] != fold, results["fold"] == fold
+            X_train, y_train = results.loc[train_mask, features], results.loc[train_mask, "y_true"]
+            X_test = results.loc[test_mask, features]
+            hp_row = results.loc[test_mask].iloc[0]
+            params = {k.replace("model__", ""): type_map.get(k.replace("model__", ""), lambda x: x)(v)
+                      for k, v in hp_row.items() if k.startswith("model__")}
+            mdl = XGBRegressor(**params).fit(X_train, y_train)
+            explainer = shap.Explainer(mdl)
+            all_shap.append(explainer(X_test).values)
+            all_X.append(X_test)
+        shap_mat = np.vstack(all_shap)
+        X_mat = pd.concat(all_X, axis=0)
+        feat_names = features
+        idxs = [i for i, f in enumerate(feat_names) if f.startswith(feat_prefix)]
+        if not idxs:
+            raise ValueError("No features match the provided prefix.")
+        mean_abs = np.abs(shap_mat[:, idxs]).mean(0)
+        order = np.argsort(mean_abs)[::-1]
         if top_n is not None:
-            feature_order = feature_order[:top_n]
-
+            order = order[:top_n]
+        feat_order = np.array(idxs)[order]
         cmap = plt.get_cmap("coolwarm")
         fig, ax = plt.subplots(figsize=figsize)
-
-        y_ticks = []
-        y_labels = []
-        for i, feature_idx in enumerate(feature_order):
-            shap_vals = shap_matrix[:, feature_idx]
-            feature_vals = feature_matrix.iloc[:, feature_idx]
-            ranks = rankdata(feature_vals)
-            norm_vals = (ranks - 1) / (len(ranks) - 1 + 1e-8)
-            colors = cmap(norm_vals)
-
-            jitter = np.random.uniform(-0.2, 0.2, size=len(shap_vals))
-            y_pos = np.full_like(shap_vals, fill_value=i, dtype=float) + jitter
-
-            ax.scatter(shap_vals, y_pos, color=colors, s=10, alpha=0.7, edgecolors='none')
-            y_ticks.append(i)
-            y_labels.append(feature_names[feature_idx])
-
-        ax.set_yticks(y_ticks[::-1])
-        ax.set_yticklabels(y_labels[::-1])
+        for i, idx in enumerate(feat_order):
+            sv, fv = shap_mat[:, idx], X_mat.iloc[:, idx]
+            colors = cmap((rankdata(fv) - 1) / (len(fv) - 1 + 1e-8))
+            jitter = np.random.uniform(-0.2, 0.2, size=len(sv))
+            ax.scatter(sv, np.full_like(sv, i) + jitter, c=colors, s=10, alpha=0.7, edgecolors='none')
+        yt = list(range(len(feat_order)))
+        ax.set_yticks(yt[::-1])
+        ax.set_yticklabels([feat_names[i] for i in feat_order][::-1], fontsize=font_size)
         ax.invert_yaxis()
-
-        ax.set_xlabel(x_label)
-        ax.set_ylabel(y_label)
-        ax.set_title(title)
-        if x_lim is not None:
+        ax.set_xlabel(x_label, fontsize=font_size)
+        ax.set_ylabel(y_label, fontsize=font_size)
+        if title:
+            ax.set_title(title, fontsize=font_size + 1)
+        if x_lim:
             ax.set_xlim(x_lim)
         ax.grid(axis='x', linestyle='--', alpha=0.5)
-
-        norm = plt.Normalize(0, 1)
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, 1))
         sm.set_array([])
         cbar = plt.colorbar(sm, ax=ax)
-        cbar.set_label(cbar_label)
-
+        cbar.set_label(cbar_label, fontsize=font_size)
+        cbar.ax.tick_params(labelsize=font_size)
+        ax.tick_params(axis='both', labelsize=font_size)
         plt.tight_layout()
         plt.show()
+
     return
 
 
-@app.cell
-def _(Optional, Tuple, XGBRegressor, data, mo, np, pd, plt, shap, sns):
-    from scipy.stats import ttest_ind
-
-
+@app.cell(hide_code=True)
+def _(
+    Optional,
+    Tuple,
+    XGBRegressor,
+    data,
+    mo,
+    np,
+    pd,
+    plt,
+    shap,
+    sns,
+    ttest_ind,
+):
     def plot_differential_B6J_DO_shap_mean_abs_predictions(
         dataset_label: str,
         X_cat: str,
@@ -355,7 +408,7 @@ def _(Optional, Tuple, XGBRegressor, data, mo, np, pd, plt, shap, sns):
         figsize: Tuple[int, int]             = (6, 6),
         title: str                           = "",
         y_label: str                         = "Feature",
-        x_label: str                         = "Δ SHAP value",
+        x_label: str                         = "Δ SHAP value (B6 - DO)",
         x_lim: Optional[Tuple[float, float]] = None
     ) -> None:
 
@@ -363,8 +416,8 @@ def _(Optional, Tuple, XGBRegressor, data, mo, np, pd, plt, shap, sns):
             'split == "test" and model == @model and X_cat == @X_cat and y_cat == @y_cat'
         ).copy()
 
-        results["strain"] = data[dataset_label]["features"].loc[results["sample_id"], "strain"].values
-    
+        results["strain"] = data[dataset_label]["features"].loc[results["sample_idx"], "strain"].values
+
         features = data[dataset_label]["xcats"][X_cat]
 
         xgb_hyperparameters = [
@@ -452,18 +505,24 @@ def _(Optional, Tuple, XGBRegressor, data, mo, np, pd, plt, shap, sns):
             plt.xlim(x_lim)
         plt.tight_layout()
         plt.show()
-    return (plot_differential_B6J_DO_shap_mean_abs_predictions,)
-
-
-@app.cell
-def _(plot_differential_B6J_DO_shap_mean_abs_predictions):
-    plot_differential_B6J_DO_shap_mean_abs_predictions("combined_1126", "unsupervised", "age", top_n=20)
     return
 
 
 @app.cell
 def _():
-    # plot_shap_summary_dot("geroscience_492", "unsupervised", "fll", top_n=20)
+    # plot_single_boxplot_by_xcat(mae_, figsize=(3, 6), title="MAE of PLL Prediction", show_x_labels=True)
+    return
+
+
+@app.cell
+def _():
+    # plot_differential_B6J_DO_shap_mean_abs_predictions("combined_1126", "unsupervised", "age", top_n=20)
+    return
+
+
+@app.cell
+def _():
+    # plot_shap_summary_dot("combined_1126", "unsupervised", "age", top_n=10, feat_prefix="syllable_frequency", figsize=(8, 6), title="")
     return
 
 
@@ -481,19 +540,374 @@ def _():
 
 @app.cell
 def _():
-    # plot_foldwise_errors("age", mae_, figsize=(6, 6))
+    # plot_foldwise_errors("age", mae_, figsize=(5, 6), rename_map={
+    #     "unsupervised": "unsupervised features",
+    #     "supervised": "supervised features",
+    #     "all": "combined features"
+    # }, legend=False, y_label="Error (weeks)")
     return
 
 
 @app.cell
 def _():
-    # plot_foldwise_errors("fi", mae_, figsize=(6, 6))
+    # plot_foldwise_errors("fi", mae_, figsize=(5, 6), rename_map={
+    #     "unsupervised": "unsupervised features",
+    #     "supervised": "supervised features",
+    #     "all": "combined features"
+    # }, legend=False, y_label="Error (FI)")
     return
 
 
 @app.cell
-def _(data):
-    data["combined_1126"]["features"].query('strain != "B6"')["strain"]
+def _():
+    # subset = data["combined_1126"]["results"].query('split == "test" and y_cat == "fi" and X_cat == "unsupervised" and model == "XGBoost"')
+    # errors = subset.groupby(["fold", "repeat"]).apply(lambda df: mean_absolute_error(df.y_true, df.y_pred)).values
+    # mean_mae = errors.mean()
+    # std_mae = errors.std(ddof=1)
+    # print(f"{mean_mae:.3f} ± {std_mae:.3f}")
+
+    # err_pct = (
+    #     subset
+    #       .groupby(["fold", "repeat"])
+    #       .apply(lambda g: np.mean(np.abs(g.y_true - g.y_pred) / g.y_true) * 100)
+    #       .values
+    # )
+
+    # print(f"Percentage error: {err_pct.mean():.2f}% ± {err_pct.std(ddof=1):.2f}%")
+    return
+
+
+@app.cell
+def _():
+    # def _foldwise_boxplot(
+    #     y_cat,
+    #     metric,
+    #     *,
+    #     ax,
+    #     data,
+    #     model=None,
+    #     x_cats=("unsupervised", "supervised", "all"),
+    #     palette="Set1",
+    #     title="",
+    #     y_label="Error",
+    #     x_label="Group",
+    #     repeat_col="repeat",
+    #     rename_map=None,
+    # ):
+    #     metric_fn, _, is_loss = metric
+    #     plot_data = []
+
+    #     for label, dcs in zip(("B6J", "DO", "B6J/DO"), data.values()):
+    #         if label != "DO":
+    #             continue
+    #         res_all = dcs["results"].query('split == "test" and y_cat == @y_cat')
+    #         for X_cat in x_cats:
+    #             if model is None:
+    #                 best_model, best_val = None, None
+    #                 for m in res_all["model"].unique():
+    #                     vals = []
+    #                     res_m = res_all.query('model == @m and X_cat == @X_cat')
+    #                     for fold in res_m["fold"].unique():
+    #                         fold_subset = res_m[res_m["fold"] == fold]
+    #                         for rep in fold_subset[repeat_col].unique():
+    #                             fr = fold_subset[fold_subset[repeat_col] == rep]
+    #                             vals.append(metric_fn(fr["y_true"], fr["y_pred"]))
+    #                     if vals:
+    #                         med = np.median(vals)
+    #                         if best_val is None or (med < best_val if is_loss else med > best_val):
+    #                             best_val, best_model = med, m
+    #                 res = res_all.query('model == @best_model and X_cat == @X_cat')
+    #             else:
+    #                 res = res_all.query('model == @model and X_cat == @X_cat')
+
+    #             for fold in res["fold"].unique():
+    #                 fold_subset = res[res["fold"] == fold]
+    #                 for rep in fold_subset[repeat_col].unique():
+    #                     fr = fold_subset[fold_subset[repeat_col] == rep]
+    #                     err = metric_fn(fr["y_true"], fr["y_pred"])
+    #                     plot_data.append({y_label: err, x_label: label, "X_cat": X_cat})
+
+    #     df_plot = pd.DataFrame(plot_data)
+    #     sns.boxplot(
+    #         data=df_plot,
+    #         x=x_label,
+    #         y=y_label,
+    #         hue="X_cat",
+    #         palette=palette,
+    #         flierprops={"marker": "."},
+    #         ax=ax,
+    #     )
+    #     handles, labels = ax.get_legend_handles_labels()
+    #     labels = [rename_map.get(l, l) if rename_map else l for l in labels]
+    #     ax.get_legend().remove()
+    #     ax.set_title(title)
+    #     return handles, labels
+
+    # _foldwise_boxplot()
+    return
+
+
+@app.cell
+def _():
+    # rename = {
+    #     "unsupervised": "unsupervised features",
+    #     "supervised": "supervised features",
+    #     "all": "combined features",
+    # }
+
+    # plot_foldwise_errors_side_by_side(
+    #     left_kwargs=dict(
+    #         y_cat="age",
+    #         metric=mae_,
+    #         title="MAE of Age Prediction Models",
+    #         model=None,  # or a specific model name
+    #     ),
+    #     right_kwargs=dict(
+    #         y_cat="fi",
+    #         metric=mae_,
+    #         title="MAE of FI Prediction Models",
+    #         model=None,
+    #     ),
+    #     data=data,  # your existing dict of datasets
+    #     figsize_left=(3, 6),
+    #     figsize_right=(3, 6),  # example of different size
+    #     palette="Set1",
+    #     rename_map=rename,
+    # )
+
+    return
+
+
+@app.cell
+def _():
+    # def _plot_foldwise_errors(y_cat, metric, *, model=None, figsize=(10,6),
+    #                          x_cats=("unsupervised","supervised","all"), palette="Set1",
+    #                          title="", y_label="Error", x_label="Group",
+    #                          repeat_col="repeat", rename_map=None):
+    #     plot_data=[]
+    #     metric_fn,_,is_loss=metric
+    #     for label,dcs in zip(("B6J","DO","B6J/DO"),data.values()):
+    #         if label!="DO": continue
+    #         results_all=dcs["results"].query('split=="test" and y_cat==@y_cat')
+    #         for X_cat in x_cats:
+    #             if model is None:
+    #                 best_model,best_val=None,1e9
+    #                 for m in results_all["model"].unique():
+    #                     vals=[]
+    #                     res_m=results_all.query('model==@m and X_cat==@X_cat')
+    #                     for fold in res_m["fold"].unique():
+    #                         frs=res_m[res_m["fold"]==fold]
+    #                         for rep in frs[repeat_col].unique():
+    #                             fr=frs[frs[repeat_col]==rep]
+    #                             vals.append(metric_fn(fr["y_true"],fr["y_pred"]))
+    #                     if vals:
+    #                         med=np.median(vals)
+    #                         cond=med<best_val if is_loss else med>best_val if best_val is not None else True
+    #                         if cond: best_val, best_model=med,m
+    #                 if best_model is None: continue
+    #                 results=results_all.query('model==@best_model and X_cat==@X_cat')
+    #             else:
+    #                 results=results_all.query('model==@model and X_cat==@X_cat')
+    #             if results.empty: continue
+    #             for fold in results["fold"].unique():
+    #                 frs=results[results["fold"]==fold]
+    #                 for rep in frs[repeat_col].unique():
+    #                     fr=frs[frs[repeat_col]==rep]
+    #                     err=metric_fn(fr["y_true"],fr["y_pred"])
+    #                     plot_data.append({y_label:err,x_label:label,"X_cat":X_cat})
+    #     if not plot_data:
+    #         raise ValueError(f"No test-set data found for y_cat={y_cat} in DO")
+    #     df_plot=pd.DataFrame(plot_data)
+    #     fig,ax=plt.subplots(figsize=figsize)
+    #     sns.boxplot(data=df_plot,x=x_label,y=y_label,hue="X_cat",
+    #                 palette=palette,flierprops={"marker":"."},ax=ax)
+    #     handles,labels=ax.get_legend_handles_labels()
+    #     labels=[rename_map.get(l,l) if rename_map else l for l in labels]
+    #     ax.legend_.remove()
+    #     ax.set_title(title)
+    #     ax.spines["top"].set_visible(False)
+    #     ax.spines["right"].set_visible(False)
+    #     fig.tight_layout()
+    #     plt.show()
+    #     return handles,labels
+
+    # def legend_only(handles,labels,*,ncol=1,figsize=(3,2)):
+    #     fig,ax=plt.subplots(figsize=figsize)
+    #     ax.axis("off")
+    #     ax.legend(handles,labels,loc="center",frameon=False,ncol=ncol)
+    #     fig.tight_layout()
+    #     plt.show()
+
+
+
+    # _plot_foldwise_errors("fll", mae_, figsize=(2.5, 6), rename_map={
+    #     "unsupervised": "unsupervised features",
+    #     "supervised": "supervised features",
+    #     "all": "combined features"
+    # }, y_label="Error (PLL)")
+    return
+
+
+@app.cell
+def _():
+    # from matplotlib.patches import Patch
+
+    # fig, ax = plt.subplots(figsize=(2.5, 1))
+    # ax.axis('off')
+    # ax.legend(
+    #     handles=[
+    #         Patch(color='red', label='unsupervised features'),
+    #         Patch(color='blue', label='supervised features'),
+    #         Patch(color='green', label='combined features')
+    #     ],
+    #     loc='center',
+    #     frameon=False
+    # )
+    # plt.tight_layout()
+    # plt.show()
+    return
+
+
+@app.cell
+def _(data, np, pd):
+    _metrics = [
+        ("MAE",  lambda y, p: np.mean(np.abs(y - p))),
+        ("RMSE", lambda y, p: np.sqrt(np.mean((y - p) ** 2))),
+        ("R2",   lambda y, p: 1 - np.sum((y - p) ** 2) / np.sum((y - np.mean(y)) ** 2)),
+    ]
+
+    _models = ["Random Forest", "XGBoost"]
+
+    def _best_model(results_all, X_cat, repeat_col):
+        sel_fn = _metrics[0][1]
+        best_m, best_val = None, None
+        for m in _models:
+            vals = []
+            rm = results_all.query('model == @m and X_cat == @X_cat')
+            for f in rm["fold"].unique():
+                fs = rm[rm["fold"] == f]
+                for r in fs[repeat_col].unique():
+                    fr = fs[fs[repeat_col] == r]
+                    vals.append(sel_fn(fr["y_true"], fr["y_pred"]))
+            if vals:
+                med = np.median(vals)
+                if best_val is None or med < best_val:
+                    best_val, best_m = med, m
+        return best_m
+
+    def summarize_errors_with_err(
+        y_cat,
+        *,
+        model=None,
+        x_cats=("unsupervised", "supervised", "all"),
+        repeat_col="repeat"
+    ):
+        central, err = [], []
+        for X_cat in x_cats:
+            row_c, row_e = {}, {}
+            for label, dcs in zip(("B6J", "DO", "B6J/DO"), data.values()):
+                ra = dcs["results"].query('split == "test" and y_cat == @y_cat')
+                m_use = model or _best_model(ra, X_cat, repeat_col)
+                res = ra.query('model == @m_use and X_cat == @X_cat')
+                vals = {m: [] for m, _ in _metrics}
+                for f in res["fold"].unique():
+                    fs = res[res["fold"] == f]
+                    for r in fs[repeat_col].unique():
+                        fr = fs[fs[repeat_col] == r]
+                        y, p = fr["y_true"].values, fr["y_pred"].values
+                        for mname, mfn in _metrics:
+                            vals[mname].append(mfn(y, p))
+                for mname in vals:
+                    v = vals[mname]
+                    row_c[f"{label}_{mname}"] = np.mean(v) if v else np.nan
+                    row_e[f"{label}_{mname}_err"] = np.std(v, ddof=1) if len(v) > 1 else np.nan
+            central.append(row_c)
+            err.append(row_e)
+        return pd.DataFrame(central, index=x_cats), pd.DataFrame(err, index=x_cats)
+
+    def _sig(x, n=5):
+        return f"{x:.{n}g}"
+
+    def merge_mean_err(mean_df, err_df, n=5):
+        out = mean_df.copy()
+        for col in mean_df.columns:
+            out[col] = [
+                f"{_sig(mean_df[col].iloc[i], n)} ± {_sig(err_df[f'{col}_err'].iloc[i], n)}"
+                for i in range(len(mean_df))
+            ]
+        return out.astype(str)
+
+    age_df, age_err = summarize_errors_with_err("age")
+    fi_df,  fi_err  = summarize_errors_with_err("fi")
+
+    age_tbl = merge_mean_err(age_df, age_err)
+    fi_tbl  = merge_mean_err(fi_df,  fi_err)
+
+    age_tbl, fi_tbl
+
+    return
+
+
+@app.cell
+def _(data, np, pd):
+    _metrics = [
+        ("MAE",  lambda y, p: np.mean(np.abs(y - p))),
+        ("RMSE", lambda y, p: np.sqrt(np.mean((y - p) ** 2))),
+        ("R2",   lambda y, p: 1 - np.sum((y - p) ** 2) / np.sum((y - np.mean(y)) ** 2)),
+    ]
+
+
+    def _best_model_do(res_all,X_cat,repeat_col):
+        mf=_metrics[0][1];b_m,b_v=None,None
+        for m in res_all["model"].unique():
+            v=[];rm=res_all.query('model==@m and X_cat==@X_cat')
+            for f in rm["fold"].unique():
+                fs=rm[rm["fold"]==f]
+                for r in fs[repeat_col].unique():
+                    fr=fs[fs[repeat_col]==r]
+                    v.append(mf(fr["y_true"],fr["y_pred"]))
+            if v:
+                med=np.median(v)
+                if b_v is None or med<b_v:
+                    b_v,b_m=med,m
+        return b_m
+
+    def summarize_errors_do(y_cat,x_cats=("unsupervised","supervised","all"),repeat_col="repeat",model=None):
+        cent,err=[],[]
+        for X_cat in x_cats:
+            rc,re={},{}
+            for lbl,dcs in zip(("B6J","DO","B6J/DO"),data.values()):
+                if lbl!="DO":continue
+                ra=dcs["results"].query('split=="test" and y_cat==@y_cat')
+                m_use=model or _best_model_do(ra,X_cat,repeat_col)
+                res=ra.query('model==@m_use and X_cat==@X_cat')
+                vals={n:[] for n,_ in _metrics}
+                for f in res["fold"].unique():
+                    fs=res[res["fold"]==f]
+                    for r in fs[repeat_col].unique():
+                        fr=fs[fs[repeat_col]==r]
+                        y,p=fr["y_true"].values,fr["y_pred"].values
+                        for n,fm in _metrics: vals[n].append(fm(y,p))
+                for n in vals:
+                    v=vals[n]
+                    rc[f"DO_{n}"]=np.mean(v) if v else np.nan
+                    re[f"DO_{n}_err"]=np.std(v,ddof=1) if len(v)>1 else np.nan
+            cent.append(rc);err.append(re)
+        return pd.DataFrame(cent,index=x_cats),pd.DataFrame(err,index=x_cats)
+
+    def _sig(x,n=5):return f"{x:.{n}g}"
+
+    def _merge_mean_err(mean_df,err_df,n=5):
+        out=mean_df.copy()
+        for c in mean_df.columns:
+            out[c]=[f"{_sig(mean_df[c].iloc[i],n)} ± {_sig(err_df[f'{c}_err'].iloc[i],n)}"
+                    for i in range(len(mean_df))]
+        return out.astype(str)
+
+    fll_df,fll_err=summarize_errors_do("fll")
+    fll_tbl=_merge_mean_err(fll_df,fll_err)
+    fll_tbl
+
     return
 
 
