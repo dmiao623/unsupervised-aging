@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.14.10"
+__generated_with = "0.16.2"
 app = marimo.App(width="full")
 
 
@@ -48,7 +48,7 @@ def _():
 @app.cell
 def _(Path, json, os, pd):
     unsupervised_aging_dir = Path(os.environ["UNSUPERVISED_AGING"])
-    data_info_path         = unsupervised_aging_dir / "data/data_info.json"
+    data_info_path         = unsupervised_aging_dir / "data/data_info_resample-test.json"
 
     with data_info_path.open("r") as f:
         data_info = json.load(f)
@@ -67,13 +67,27 @@ def _(Path, json, os, pd):
 
 
 @app.cell
+def _(data, pd):
+    data["combined_1126"]["results"] = pd.read_csv("/projects/kumar-lab/miaod/projects/unsupervised-aging/data/model_evaluation_results/2025-10-08_model-evaluation-results__combined_1126__2025-09-20_kpms-v5_150_1_1-2-3-4-5-6-_old_1-_young_1.csv")
+    print("reading json")
+    return
+
+
+@app.cell
+def _(data, json):
+    with open("/projects/kumar-lab/miaod/projects/unsupervised-aging/data/feature_matrices/2025-10-06_xcats__combined_1126__2025-09-20_kpms-v5_150_1_1-2-3-4-5-6-_old_1-_young-1.json", "r") as json_f:
+        data["combined_1126"]["xcats"] = json.load(json_f)
+    return
+
+
+@app.cell
 def _(Callable, Tuple, mean_absolute_error, mean_squared_error, pd, r2_score):
     Metric_t = Tuple[Callable[[pd.Series, pd.Series], float], str, bool]
 
     mae_  = (mean_absolute_error, "MAE", True)
     rmse_ = (mean_squared_error, "RMSE", True)
     r2_   = (r2_score, "R²", False)
-    return (Metric_t,)
+    return Metric_t, mae_
 
 
 @app.cell(hide_code=True)
@@ -153,14 +167,14 @@ def _(data, np, pd, plt, sns):
         plt.title(title)
         plt.tight_layout()
         plt.show()
-
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(Metric_t, Optional, Tuple, data, np, pd, plt, sns):
     def plot_single_boxplot_by_xcat(
         metric: Metric_t,
+        y_cat: str,
         *,
         model: Optional[str]     = None,
         figsize: Tuple[int, int] = (10, 6),
@@ -174,7 +188,7 @@ def _(Metric_t, Optional, Tuple, data, np, pd, plt, sns):
     ) -> None:
         plot_data = []
         metric_fn, metric_name, is_loss = metric
-        results_all = data["geroscience_492"]["results"].query('split == "test" and y_cat == "fll"')
+        results_all = data["combined_1126"]["results"].query(f'split == "test" and y_cat == @y_cat')
 
         for X_cat in x_cats:
             if model is None:
@@ -203,15 +217,16 @@ def _(Metric_t, Optional, Tuple, data, np, pd, plt, sns):
 
         df_plot = pd.DataFrame(plot_data)
         plt.figure(figsize=figsize, dpi=300)
-        sns.boxplot(data=df_plot, x=x_label, y=y_label, palette=palette)
+        ax = sns.boxplot(data=df_plot, x=x_label, y=y_label, palette=palette)
         if not show_x_labels:
             plt.xticks([])
             plt.xlabel("")
+        else:
+            plt.xticks(rotation=90)
         plt.title(title)
         plt.tight_layout()
         plt.show()
-
-    return
+    return (plot_single_boxplot_by_xcat,)
 
 
 @app.cell(hide_code=True)
@@ -380,7 +395,6 @@ def _(Optional, Tuple, XGBRegressor, data, np, pd, plt, rankdata, shap):
         ax.tick_params(axis='both', labelsize=font_size)
         plt.tight_layout()
         plt.show()
-
     return
 
 
@@ -509,9 +523,49 @@ def _(
 
 
 @app.cell
-def _():
-    # plot_single_boxplot_by_xcat(mae_, figsize=(3, 6), title="MAE of PLL Prediction", show_x_labels=True)
+def _(data, mae_, plot_single_boxplot_by_xcat):
+    filter1 = [
+        "2025-09-20_kpms-v5_150_1",
+        "2025-09-20_kpms-v5_150_2",
+        "2025-09-20_kpms-v5_150_3",
+        "2025-09-20_kpms-v5_150_4",
+        "2025-09-20_kpms-v5_150_5",
+        "2025-09-20_kpms-v5_150_6",
+        "2025-09-20_kpms-v5_150__old_1",
+        "2025-09-20_kpms-v5_150__young_1",
+    ]
+    x_cats1 = {k: v for k, v in data["combined_1126"]["xcats"].items() if k in filter1}
+    plot_single_boxplot_by_xcat(mae_, "fi", figsize=(4,8), title="MAE of FI Pred.", show_x_labels=True, x_cats=filter1)
     return
+
+
+@app.cell
+def _(data, mae_, plot_single_boxplot_by_xcat):
+    filter2 = [
+        "2025-09-20_kpms-v5_150_4",
+        "2025-09-20_kpms-v5_150_4__old",
+        "2025-09-20_kpms-v5_150_5",
+        "2025-09-20_kpms-v5_150_5__old",
+        "2025-09-20_kpms-v5_150_6",
+        "2025-09-20_kpms-v5_150_6__old",
+    ]
+    x_cats2 = {k: v for k, v in data["combined_1126"]["xcats"].items() if k in filter2}
+    plot_single_boxplot_by_xcat(mae_, "fi", figsize=(4,8), title="MAE of FI Pred.", show_x_labels=True, x_cats=filter2)
+    return
+
+
+@app.cell
+def _():
+    # plot_single_boxplot_by_xcat(mae_, "fi", figsize=(4,8), title="MAE of FI Pred.", show_x_labels=True, _x_cats=data["combined_1126"]["xcats"])
+    return
+
+
+app._unparsable_cell(
+    r"""
+    -# plot_single_boxplot_by_xcat(mae_, figsize=(3, 6), title=\"MAE of PLL Prediction\", show_x_labels=True)
+    """,
+    name="_"
+)
 
 
 @app.cell
@@ -674,7 +728,6 @@ def _():
     #     palette="Set1",
     #     rename_map=rename,
     # )
-
     return
 
 
@@ -844,7 +897,6 @@ def _(data, np, pd):
     fi_tbl  = merge_mean_err(fi_df,  fi_err)
 
     age_tbl, fi_tbl
-
     return
 
 
@@ -907,7 +959,6 @@ def _(data, np, pd):
     fll_df,fll_err=summarize_errors_do("fll")
     fll_tbl=_merge_mean_err(fll_df,fll_err)
     fll_tbl
-
     return
 
 

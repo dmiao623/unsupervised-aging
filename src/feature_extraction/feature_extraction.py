@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.14.10"
+__generated_with = "0.16.2"
 app = marimo.App(width="full")
 
 
@@ -26,7 +26,20 @@ def _():
     from typing import Any, Dict, Mapping, Optional, Sequence
 
     import keypoint_moseq as kpms
-    return Any, Dict, Sequence, json, kpms, mo, np, operator, pd, reduce
+    return (
+        Any,
+        Dict,
+        Mapping,
+        Optional,
+        Sequence,
+        json,
+        kpms,
+        mo,
+        np,
+        operator,
+        pd,
+        reduce,
+    )
 
 
 @app.cell
@@ -157,8 +170,8 @@ def _(Dict, Sequence, mo, np, results):
     return (syllable_frequency_statistics,)
 
 
-app._unparsable_cell(
-    r"""
+@app.cell
+def _(Dict, Mapping, Optional, Sequence, mo, np, results):
     def _get_metasyllable_transition_matrix(
         grouped_syllables: Optional[Mapping[str, Sequence[int]]] = None,
         *,
@@ -168,7 +181,7 @@ app._unparsable_cell(
         if grouped_syllables is None:
             grouped_syllables = {}
 
-        sequences = [info[\"syllable\"] for info in results.values()]
+        sequences = [info["syllable"] for info in results.values()]
         vocab_size = max(s for seq in sequences for s in seq) + 1
         all_indices = set(range(vocab_size))
 
@@ -176,23 +189,23 @@ app._unparsable_cell(
         for name, idxs in grouped_syllables.items():
             bad = set(idxs) - all_indices
             if bad:
-                raise ValueError(f\"Group '{name}' contains invalid indices {sorted(bad)}.\")
+                raise ValueError(f"Group '{name}' contains invalid indices {sorted(bad)}.")
             if seen.intersection(idxs):
-                raise ValueError(\"Duplicate indices detected across groups.\")
+                raise ValueError("Duplicate indices detected across groups.")
             seen.update(idxs)
 
         if not ignore_unknown:
             unknown = sorted(all_indices - seen)
             if unknown:
                 grouped_syllables = dict(grouped_syllables)
-                grouped_syllables[\"unknown\"] = unknown
+                grouped_syllables["unknown"] = unknown
 
         names      = list(grouped_syllables.keys())
         idx_sets   = [set(grouped_syllables[n]) for n in names]
         g          = len(names)
-        feats      = {f\"transition_matrix_{a}_{b}\": [] for a in names for b in names if a != b}
+        feats      = {f"transition_matrix_{a}_{b}": [] for a in names for b in names if a != b}
         if include_frequencies:
-            feats.update({f\"metasyllable_frequency_{n}\": [] for n in names})
+            feats.update({f"metasyllable_frequency_{n}": [] for n in names})
 
         idx_to_group = {}
         for gi, s in enumerate(idx_sets):
@@ -200,7 +213,7 @@ app._unparsable_cell(
                 idx_to_group[idx] = gi
 
         for _, info in mo.status.progress_bar(results.items()):
-            seq = info[\"syllable\"]
+            seq = info["syllable"]
             G = np.zeros((g, g), dtype=float)
             for a, b in zip(seq[:-1], seq[1:]):
                 if a in idx_to_group and b in idx_to_group:
@@ -213,7 +226,7 @@ app._unparsable_cell(
             for i, ai in enumerate(names):
                 for j, bj in enumerate(names):
                     if ai != bj:
-                        feats[f\"transition_matrix_{ai}_{bj}\"].append(G[i, j])
+                        feats[f"transition_matrix_{ai}_{bj}"].append(G[i, j])
 
             if include_frequencies:
                 counts = np.zeros(g, dtype=int)
@@ -223,41 +236,39 @@ app._unparsable_cell(
                 total_tokens = len(seq)
                 freqs = counts / total_tokens if total_tokens else counts
                 for i, name in enumerate(names):
-                    feats[f\"metasyllable_frequency_{name}\"].append(freqs[i])
+                    feats[f"metasyllable_frequency_{name}"].append(freqs[i])
         return feats
 
 
     # nature-aging_634
     # _metasyllable_groupings = {
-    #     \"kpms_dendrogram_0\": [0, 2, 10, 54, 35, 9, 30, 16, 26, 20, 6, 15],
-    #     \"kpms_dendrogram_1\": [24, 42, 52, 50, 48, 57, 33, 38, 60, 12, 58, 22, 43],
-    #     \"kpms_dendrogram_2\": [19, 59, 1, 3, 14, 18, 34, 5, 7, 46, 40, 4, 11, 45],
-    #     \"kpms_dendrogram_3\": [13, 8, 17, 39, 51, 21, 36, 61, 31, 49, 28, 44, 55, 37, 25, 32, 27, 56],
-    #     \"kpms_dendrogram_4\": [53, 62, 29, 41, 23, 47]
+    #     "kpms_dendrogram_0": [0, 2, 10, 54, 35, 9, 30, 16, 26, 20, 6, 15],
+    #     "kpms_dendrogram_1": [24, 42, 52, 50, 48, 57, 33, 38, 60, 12, 58, 22, 43],
+    #     "kpms_dendrogram_2": [19, 59, 1, 3, 14, 18, 34, 5, 7, 46, 40, 4, 11, 45],
+    #     "kpms_dendrogram_3": [13, 8, 17, 39, 51, 21, 36, 61, 31, 49, 28, 44, 55, 37, 25, 32, 27, 56],
+    #     "kpms_dendrogram_4": [53, 62, 29, 41, 23, 47]
     # }
 
     # geroscience_492
     # _metasyllable_groupings = {
-    #     \"kpms_dendogram_0\": [12, 20, 28, 14, 26],
-    #     \"kpms_dendogram_1\": [33, 23, 39, 13, 3, 11, 18],
-    #     \"kpms_dendogram_2\": [24, 9, 6, 25, 15, 21, 16, 35, 2, 10, 17],
-    #     \"kpms_dendogram_3\": [4, 34, 22, 30, 27, 29, 32, 19],
-    #     \"kpms_dendogram_4\": [5, 7, 8, 43, 55, 0, 1, 31],
+    #     "kpms_dendogram_0": [12, 20, 28, 14, 26],
+    #     "kpms_dendogram_1": [33, 23, 39, 13, 3, 11, 18],
+    #     "kpms_dendogram_2": [24, 9, 6, 25, 15, 21, 16, 35, 2, 10, 17],
+    #     "kpms_dendogram_3": [4, 34, 22, 30, 27, 29, 32, 19],
+    #     "kpms_dendogram_4": [5, 7, 8, 43, 55, 0, 1, 31],
     # }
 
     # combined_1126
-    _metasyllable_groupings = {
-    #     \"kpms_dendrogram_0\": [41, 11, 23, 39, 22, 37, 28, 32, 5, 34, 1, 31, 20, 13, 25],
-    #     \"kpms_dendrogram_1\": [45, 46],
-    #     \"kpms_dendrogram_2\": [44, 50, 4, 2, 18, 53, 24, 8, 35, 14, 15, 10, 17, 26, 30, 7, 43, 9, 42, 48, 6, 29],
-    #     \"kpms_dendrogram_3\": [47, 27, 36],
-    #     \"kpms_dendrogram_4\": [40, 21, 12, 33, 16, 0, 3, 19, 38],
+    # _metasyllable_groupings = {
+    #     "kpms_dendrogram_0": [41, 11, 23, 39, 22, 37, 28, 32, 5, 34, 1, 31, 20, 13, 25],
+    #     "kpms_dendrogram_1": [45, 46],
+    #     "kpms_dendrogram_2": [44, 50, 4, 2, 18, 53, 24, 8, 35, 14, 15, 10, 17, 26, 30, 7, 43, 9, 42, 48, 6, 29],
+    #     "kpms_dendrogram_3": [47, 27, 36],
+    #     "kpms_dendrogram_4": [40, 21, 12, 33, 16, 0, 3, 19, 38],
     # }
 
     kpms_dendrogram_metasyllable_transition_matrix = _get_metasyllable_transition_matrix(_metasyllable_groupings, ignore_unknown=True, include_frequencies=False)
-    """,
-    name="_"
-)
+    return (kpms_dendrogram_metasyllable_transition_matrix,)
 
 
 @app.cell

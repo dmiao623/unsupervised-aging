@@ -33,7 +33,7 @@ def _():
 
 @app.cell
 def _(Path, os):
-    dataset_dir      = Path(os.environ["UNSUPERVISED_AGING"] + "/data/datasets/geroscience_492/")
+    dataset_dir      = Path(os.environ["UNSUPERVISED_AGING"] + "/data/datasets/combined_1126/")
     export_dir       = dataset_dir / "kpms_training_set_200/"
     categorical_vars = ["sex", "diet"]
     strat_vars_bins  = {"age": 5}

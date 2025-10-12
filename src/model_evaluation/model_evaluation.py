@@ -64,42 +64,42 @@ def main(
     output_path = Path(output_path)
 
     regression_models = [
-        partial(
-            compute_nested_kfold_validation,
-            estimator_ctor = lambda: Pipeline([
-                ("scale", StandardScaler()),
-                ("model", LinearRegression()),
-            ]),
-            param_grid = {},
-            search_ctor = None,
-            model_name = "Linear Regression",
-        ),
+#       partial(
+#           compute_nested_kfold_validation,
+#           estimator_ctor = lambda: Pipeline([
+#               ("scale", StandardScaler()),
+#               ("model", LinearRegression()),
+#           ]),
+#           param_grid = {},
+#           search_ctor = None,
+#           model_name = "Linear Regression",
+#       ),
 
-        partial(
-            compute_nested_kfold_validation,
-            estimator_ctor = lambda: Pipeline([
-                ("scale", StandardScaler()),
-                ("model", Ridge(random_state=seed)),
-            ]),
-            param_grid = dict(
-                model__alpha = np.logspace(-2, 3, 100)
-            ),
-            search_ctor = GridSearchCV,
-            model_name = "Ridge Regression",
-        ),
+#       partial(
+#           compute_nested_kfold_validation,
+#           estimator_ctor = lambda: Pipeline([
+#               ("scale", StandardScaler()),
+#               ("model", Ridge(random_state=seed)),
+#           ]),
+#           param_grid = dict(
+#               model__alpha = np.logspace(-2, 3, 100)
+#           ),
+#           search_ctor = GridSearchCV,
+#           model_name = "Ridge Regression",
+#       ),
 
-        partial(
-            compute_nested_kfold_validation,
-            estimator_ctor = lambda: Pipeline([
-                ("scale", StandardScaler()),
-                ("model", Lasso(max_iter=50000, random_state=seed)),
-            ]),
-            param_grid = dict(
-                model__alpha = np.logspace(-2, 3, 100)
-            ),
-            search_ctor = GridSearchCV,
-            model_name = "Lasso Regression",
-        ),
+#       partial(
+#           compute_nested_kfold_validation,
+#           estimator_ctor = lambda: Pipeline([
+#               ("scale", StandardScaler()),
+#               ("model", Lasso(max_iter=50000, random_state=seed)),
+#           ]),
+#           param_grid = dict(
+#               model__alpha = np.logspace(-2, 3, 100)
+#           ),
+#           search_ctor = GridSearchCV,
+#           model_name = "Lasso Regression",
+#       ),
 
         partial(
             compute_nested_kfold_validation,
