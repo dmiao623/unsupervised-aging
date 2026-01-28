@@ -36,122 +36,100 @@ def _(Path, json, os, pd):
 def _(combined_df):
     filtered_df = combined_df[["name", "mouse_id", "sex", "batch", "tester", "age", "fi", "weight", "diet", "strain", "fll", "raw_fi"] + [c for c in combined_df.columns if c.startswith("syllable_frequency")]]
     b6j_df, do_df = filtered_df.query("strain == 'B6'"), filtered_df.query("strain == 'DO'")
-    do_df.head(3)
-    return b6j_df, do_df
+
+    q25 = filtered_df["age"].quantile(0.25)
+    q75 = filtered_df["age"].quantile(0.75)
+
+    young_df = filtered_df[filtered_df["age"] <= q25]
+    old_df = filtered_df[filtered_df["age"] >= q75]
+    return b6j_df, do_df, old_df, young_df
 
 
 @app.cell
-def _(b6j_df, do_df):
+def _(b6j_df, do_df, old_df, young_df):
     def get_syllable_stats(df):
         cols = [c for c in df.columns if c.startswith("syllable_frequency")]
         return {c: (df[c].mean(), df[c].std()) for c in cols}
 
     b6j_stats = get_syllable_stats(b6j_df)
     do_stats = get_syllable_stats(do_df)
-    return b6j_stats, do_stats
-
-
-@app.cell
-def _(b6j_stats):
-    b6j_stats
-    return
-
-
-@app.cell
-def _(b6j_stats, do_stats, plt):
-    b6j_means = {c: v[0] for c, v in b6j_stats.items()}
-    do_means = {c: v[0] for c, v in do_stats.items()}
-    normalized_do = {c: do_means[c] / b6j_means[c] for c in b6j_means}
-
-    x = list(range(1, len(b6j_means) + 1))
-    y_do = list(normalized_do.values())
-
-    plt.figure(figsize=(10,5))
-    plt.plot(x, [1]*len(x), label="B6J (baseline)")
-    plt.plot(x, y_do, label="DO / B6J", marker='o')
-    plt.xticks(ticks=x[::5], labels=[i for i in x[::5]])
-    plt.xlabel("Syllable Number")
-    plt.ylabel("Normalized syllable usage")
-    plt.title("Normalized syllable frequency: DO vs B6J")
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
-    return b6j_means, normalized_do, x, y_do
-
-
-@app.cell
-def _(b6j_means, normalized_do, plt):
-    syllable_nums = [int(c.split("_")[-1]) for c in b6j_means.keys()]
-    filtered = [(num, normalized_do[c]) for c, num in zip(b6j_means.keys(), syllable_nums) if num != 69]
-
-    _x, _y_do = zip(*sorted(filtered))
-    _x = _x[:53]
-    _y_do = _y_do[:53]
-
-    plt.figure(figsize=(10,5))
-    plt.plot(_x, [1]*len(_x), label="B6J (baseline)")
-    plt.plot(_x, _y_do, label="DO / B6J", marker='o')
-    plt.xticks(ticks=_x[::5], labels=[i for i in _x[::5]])
-    plt.yscale("log")
-    plt.xlabel("Syllable Number")
-    plt.ylabel("Normalized syllable usage")
-    plt.title("Normalized syllable frequency: DO vs B6J")
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
-    return
-
-
-@app.cell
-def _(plt, x, y_do):
-    plt.figure(figsize=(10,5))
-    plt.plot(x, [1]*len(x), label="B6J (baseline)")
-    plt.plot(x, y_do, label="DO / B6J", marker='o')
-    plt.yscale("log")
-    plt.xticks(ticks=x[::5], labels=[i for i in x[::5]])
-    plt.xlabel("Syllable Number")
-    plt.ylabel("Normalized syllable usage (log scale)")
-    plt.title("Normalized syllable frequency: DO vs B6J (excluding syllable 69)")
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
-    return
-
-
-@app.cell
-def _(b6j_stats, do_stats):
-    print(b6j_stats["syllable_frequency_70"], do_stats["syllable_frequency_70"])
-    return
+    young_stats = get_syllable_stats(young_df)
+    old_stats = get_syllable_stats(old_df)
+    return b6j_stats, do_stats, old_stats, young_stats
 
 
 @app.cell
 def _(b6j_stats, do_stats, np, plt):
-    _syllable_nums = [int(c.split("_")[-1]) for c in b6j_stats.keys()]
-    _syllable_nums = [c for c in _syllable_nums if c <= 53]
-    _filtered = [(num, b6j_stats[c], do_stats[c]) for c, num in zip(b6j_stats.keys(), _syllable_nums)]
-    _filtered = sorted(_filtered, key=lambda x: x[0])
+    def plot_normalized_syllable_usage(baseline_means, other_means, baseline_label="B6J", other_label="DO", figsize=(10,5), xtick_step=5, show=True, log_scale=False):
+        keys = [k for k in baseline_means if k in other_means]
+        b = np.array([baseline_means[k] for k in keys], dtype=float)
+        o = np.array([other_means[k] for k in keys], dtype=float)
+        norm = np.divide(o, b, out=np.full_like(o, np.nan), where=b!=0)
+        x = np.arange(1, len(keys)+1)
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.plot(x, np.ones_like(x), label=f"{baseline_label} (baseline)")
+        ax.plot(x, norm, label=f"{other_label} / {baseline_label}", marker="o")
+        if xtick_step:
+            ticks = list(range(1, len(keys)+1, xtick_step))
+            ax.set_xticks(ticks)
+            ax.set_xticklabels([str(i) for i in ticks])
+        ax.set_xlabel("Syllable Number")
+        ax.set_ylabel("Normalized syllable usage")
+        ax.set_title(f"Normalized syllable frequency: {other_label} vs {baseline_label}")
+        if log_scale:
+            ax.set_yscale("log")
+        ax.legend()
+        fig.tight_layout()
+        if show:
+            plt.show()
+        # return fig, ax, dict(zip(keys, norm.tolist())), keys
 
-    _x_labels = [f"S{i}" for i, _, _ in _filtered]
-    _b6j_means = [v[0] for _, v, _ in _filtered]
-    _b6j_stds = [v[1] for _, v, _ in _filtered]
-    _do_means = [v[0] for _, _, v in _filtered]
-    _do_stds = [v[1] for _, _, v in _filtered]
+    b6j_means = {c: v[0] for c, v in b6j_stats.items()}
+    do_means = {c: v[0] for c, v in do_stats.items()}
+    plot_normalized_syllable_usage(b6j_means, do_means, show=True, log_scale=True)
+    return (plot_normalized_syllable_usage,)
 
-    _x = np.arange(len(_x_labels))
-    _width = 0.4
 
-    plt.figure(figsize=(12,6))
-    plt.bar(_x - _width/2, _b6j_means, _width, yerr=_b6j_stds, label="B6J", capsize=3)
-    plt.bar(_x + _width/2, _do_means, _width, yerr=_do_stds, label="DO", capsize=3)
-    plt.yscale("log")
-    plt.xticks(ticks=_x[::5], labels=[_x_labels[i] for i in range(0, len(_x_labels), 5)])
-    plt.xlabel("Syllable Number")
-    plt.ylabel("Syllable Frequency (log scale)")
-    plt.title("Syllable Frequency Comparison: DO vs B6J (all syllables)")
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+@app.cell
+def _(old_stats, plot_normalized_syllable_usage, young_stats):
+    young_means = {c: v[0] for c, v in young_stats.items()}
+    old_means = {c: v[0] for c, v in old_stats.items()}
+    plot_normalized_syllable_usage(young_means, old_means, show=True, baseline_label="Young", other_label="Old", log_scale=True)
+    return
 
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
     return
 
 

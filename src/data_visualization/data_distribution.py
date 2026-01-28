@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.14.10"
+__generated_with = "0.16.2"
 app = marimo.App(width="full")
 
 
@@ -172,7 +172,6 @@ def _(Line2D, Patch, data, pd, plt):
 
 
     _plot_age_fi_scatter(fontsize=16)
-
     return
 
 
@@ -275,6 +274,21 @@ def _(Dict, Line2D, Patch, Tuple, data, pd, plt):
         plt.show()
 
     plot_combined_diet_age_fi(wspace=0.5)
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
     return
 
 

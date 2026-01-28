@@ -67,16 +67,22 @@ def _(Path, json, os, pd):
 
 
 @app.cell
-def _(data, pd):
-    data["combined_1126"]["results"] = pd.read_csv("/projects/kumar-lab/miaod/projects/unsupervised-aging/data/model_evaluation_results/2025-10-08_model-evaluation-results__combined_1126__2025-09-20_kpms-v5_150_1_1-2-3-4-5-6-_old_1-_young_1.csv")
-    print("reading json")
+def _(data):
+    data["combined_1126"]["xcats"].keys()
     return
 
 
 @app.cell
-def _(data, json):
-    with open("/projects/kumar-lab/miaod/projects/unsupervised-aging/data/feature_matrices/2025-10-06_xcats__combined_1126__2025-09-20_kpms-v5_150_1_1-2-3-4-5-6-_old_1-_young-1.json", "r") as json_f:
-        data["combined_1126"]["xcats"] = json.load(json_f)
+def _():
+    # data["combined_1126"]["results"] = pd.read_csv("/projects/kumar-lab/miaod/projects/unsupervised-aging/data/model_evaluation_results/2025-10-06_model-evaluation-results__combined_1126__2025-09-20_kpms-v5_150_1_1-2-3-4-5-6-_old_1-_young-1__long_2025-10-13.csv")
+    # print("reading json")
+    return
+
+
+@app.cell
+def _():
+    # with open("/projects/kumar-lab/miaod/projects/unsupervised-aging/data/feature_matrices/2025-10-06_xcats__combined_1126__2025-09-20_kpms-v5_150_1_1-2-3-4-5-6-_old_1-_young-1.json", "r") as json_f:
+    #     data["combined_1126"]["xcats"] = json.load(json_f)
     return
 
 
@@ -87,7 +93,7 @@ def _(Callable, Tuple, mean_absolute_error, mean_squared_error, pd, r2_score):
     mae_  = (mean_absolute_error, "MAE", True)
     rmse_ = (mean_squared_error, "RMSE", True)
     r2_   = (r2_score, "R²", False)
-    return Metric_t, mae_
+    return (Metric_t,)
 
 
 @app.cell(hide_code=True)
@@ -170,7 +176,7 @@ def _(data, np, pd, plt, sns):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(Metric_t, Optional, Tuple, data, np, pd, plt, sns):
     def plot_single_boxplot_by_xcat(
         metric: Metric_t,
@@ -226,7 +232,7 @@ def _(Metric_t, Optional, Tuple, data, np, pd, plt, sns):
         plt.title(title)
         plt.tight_layout()
         plt.show()
-    return (plot_single_boxplot_by_xcat,)
+    return
 
 
 @app.cell(hide_code=True)
@@ -395,10 +401,16 @@ def _(Optional, Tuple, XGBRegressor, data, np, pd, plt, rankdata, shap):
         ax.tick_params(axis='both', labelsize=font_size)
         plt.tight_layout()
         plt.show()
+    return (plot_shap_summary_dot,)
+
+
+@app.cell
+def _(data):
+    "sample_idx" in data["combined_1126"]["results"].keys()
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(
     Optional,
     Tuple,
@@ -425,15 +437,14 @@ def _(
         x_label: str                         = "Δ SHAP value (B6 - DO)",
         x_lim: Optional[Tuple[float, float]] = None
     ) -> None:
-
         results = data[dataset_label]["results"].query(
             'split == "test" and model == @model and X_cat == @X_cat and y_cat == @y_cat'
         ).copy()
+        feat_df = data[dataset_label]["features"]
+        idx = results["sample_idx"].astype(feat_df.index.dtype)
+        results["strain"] = feat_df.reindex(idx)["strain"].to_numpy()
 
-        results["strain"] = data[dataset_label]["features"].loc[results["sample_idx"], "strain"].values
-
-        features = data[dataset_label]["xcats"][X_cat]
-
+        feature_cols = data[dataset_label]["xcats"][X_cat]
         xgb_hyperparameters = [
             ("model__n_estimators", int),
             ("model__learning_rate", float),
@@ -445,23 +456,17 @@ def _(
             ("model__reg_alpha", float),
             ("model__reg_lambda", float)
         ]
-
         num_folds = max(results["fold"]) + 1
         print(f"[DEBUG] Detected {num_folds} validation folds.")
-
         shap_group1 = []
         shap_group2 = []
-
         for fold in mo.status.progress_bar(range(num_folds)):
             train_mask = results["fold"] != fold
             test_mask  = results["fold"] == fold
-
-            X_train = results.loc[train_mask, features]
+            X_train = results.loc[train_mask, feature_cols]
             y_train = results.loc[train_mask, "y_true"]
-
-            X_test  = results.loc[test_mask,  features]
+            X_test  = results.loc[test_mask,  feature_cols]
             y_test  = results.loc[test_mask,  "y_true"]
-
             hp_rows = results.loc[test_mask, [name for name, _ in xgb_hyperparameters]].drop_duplicates()
             if len(hp_rows) != 1:
                 raise ValueError(f"Expected a single hyper-parameter row for the test fold but found {len(hp_rows)}.")
@@ -469,43 +474,31 @@ def _(
             for param_name, param_type in xgb_hyperparameters:
                 params[param_name] = param_type(params[param_name])
             params = {k.replace("model__", ""): v for k, v in params.items()}
-
             model = XGBRegressor(**params)
             model.fit(X_train, y_train)
-
             explainer = shap.Explainer(model)
             shap_vals = explainer(X_test)
-
             df_test = results.loc[test_mask].copy()
             shap_abs = np.abs(shap_vals.values)
-            df_shap = pd.DataFrame(shap_abs, columns=features, index=df_test.index)
-
+            df_shap = pd.DataFrame(shap_abs, columns=feature_cols, index=df_test.index)
             mask1 = df_test.query('strain == "B6"').index
             mask2 = df_test.query('strain == "DO"').index
-
             shap_group1.append(df_shap.loc[mask1].mean().values)
             shap_group2.append(df_shap.loc[mask2].mean().values)
-
         group1_matrix = np.vstack(shap_group1)
         group2_matrix = np.vstack(shap_group2)
-
         t_stat, p_val = ttest_ind(group1_matrix, group2_matrix, axis=0, equal_var=False, nan_policy='omit')
         mean_diff = group1_matrix.mean(axis=0) - group2_matrix.mean(axis=0)
-
         print("[DEBUG] mean_diff:", mean_diff)
-        print("[DEBUG] features length:", len(features))
-
+        print("[DEBUG] feature_cols length:", len(feature_cols))
         df_diff = pd.DataFrame({
-            "feature": features,
+            "feature": feature_cols,
             "mean_diff": mean_diff,
             "p_val": p_val
         }).sort_values("p_val")
-
         print("[DEBUG] df_diff shape:", df_diff.shape)
-
         if top_n is not None:
             df_diff = df_diff.head(top_n)
-
         plt.figure(figsize=figsize)
         sns.barplot(
             x=df_diff["mean_diff"],
@@ -519,38 +512,39 @@ def _(
             plt.xlim(x_lim)
         plt.tight_layout()
         plt.show()
+
+    return (plot_differential_B6J_DO_shap_mean_abs_predictions,)
+
+
+@app.cell
+def _():
+    # filter1 = [
+    #     "2025-09-20_kpms-v5_150_1",
+    #     "2025-09-20_kpms-v5_150_2",
+    #     "2025-09-20_kpms-v5_150_3",
+    #     "2025-09-20_kpms-v5_150_4",
+    #     "2025-09-20_kpms-v5_150_5",
+    #     "2025-09-20_kpms-v5_150_6",
+    #     "2025-09-20_kpms-v5_150__old_1",
+    #     "2025-09-20_kpms-v5_150__young_1",
+    # ]
+    # x_cats1 = {k: v for k, v in data["combined_1126"]["xcats"].items() if k in filter1}
+    # plot_single_boxplot_by_xcat(mae_, "fi", figsize=(4,8), title="MAE of FI Pred.", show_x_labels=True, x_cats=filter1)
     return
 
 
 @app.cell
-def _(data, mae_, plot_single_boxplot_by_xcat):
-    filter1 = [
-        "2025-09-20_kpms-v5_150_1",
-        "2025-09-20_kpms-v5_150_2",
-        "2025-09-20_kpms-v5_150_3",
-        "2025-09-20_kpms-v5_150_4",
-        "2025-09-20_kpms-v5_150_5",
-        "2025-09-20_kpms-v5_150_6",
-        "2025-09-20_kpms-v5_150__old_1",
-        "2025-09-20_kpms-v5_150__young_1",
-    ]
-    x_cats1 = {k: v for k, v in data["combined_1126"]["xcats"].items() if k in filter1}
-    plot_single_boxplot_by_xcat(mae_, "fi", figsize=(4,8), title="MAE of FI Pred.", show_x_labels=True, x_cats=filter1)
-    return
-
-
-@app.cell
-def _(data, mae_, plot_single_boxplot_by_xcat):
-    filter2 = [
-        "2025-09-20_kpms-v5_150_4",
-        "2025-09-20_kpms-v5_150_4__old",
-        "2025-09-20_kpms-v5_150_5",
-        "2025-09-20_kpms-v5_150_5__old",
-        "2025-09-20_kpms-v5_150_6",
-        "2025-09-20_kpms-v5_150_6__old",
-    ]
-    x_cats2 = {k: v for k, v in data["combined_1126"]["xcats"].items() if k in filter2}
-    plot_single_boxplot_by_xcat(mae_, "fi", figsize=(4,8), title="MAE of FI Pred.", show_x_labels=True, x_cats=filter2)
+def _():
+    # filter2 = [
+    #     "2025-09-20_kpms-v5_150_4",
+    #     "2025-09-20_kpms-v5_150_4__old",
+    #     "2025-09-20_kpms-v5_150_5",
+    #     "2025-09-20_kpms-v5_150_5__old",
+    #     "2025-09-20_kpms-v5_150_6",
+    #     "2025-09-20_kpms-v5_150_6__old",
+    # ]
+    # x_cats2 = {k: v for k, v in data["combined_1126"]["xcats"].items() if k in filter2}
+    # plot_single_boxplot_by_xcat(mae_, "fi", figsize=(4,8), title="MAE of FI Pred.", show_x_labels=True, x_cats=filter2)
     return
 
 
@@ -569,14 +563,14 @@ app._unparsable_cell(
 
 
 @app.cell
-def _():
-    # plot_differential_B6J_DO_shap_mean_abs_predictions("combined_1126", "unsupervised", "age", top_n=20)
+def _(plot_differential_B6J_DO_shap_mean_abs_predictions):
+    plot_differential_B6J_DO_shap_mean_abs_predictions("combined_1126", "2025-09-20_kpms-v5_150_1", "age", top_n=20)
     return
 
 
 @app.cell
-def _():
-    # plot_shap_summary_dot("combined_1126", "unsupervised", "age", top_n=10, feat_prefix="syllable_frequency", figsize=(8, 6), title="")
+def _(plot_shap_summary_dot):
+    plot_shap_summary_dot("combined_1126", "2025-09-20_kpms-v5_150_1", "age", top_n=10, feat_prefix="syllable_frequency", figsize=(8, 6), title="")
     return
 
 
