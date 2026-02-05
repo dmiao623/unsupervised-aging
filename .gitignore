@@ -10,6 +10,7 @@ __marimo__/
 # data files
 *.csv
 *.txt
+*.ipynb
 
 # paths
 scripts/*.sh
