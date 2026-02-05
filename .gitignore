@@ -1,11 +1,19 @@
+# python artifacts
 .venv*/
-logs/
-
-*.h5
-*.csv
-
-.ipynb_checkpoints/
 __pycache__/
-
-.DS_Store
 __marimo__/
+.ipynb_checkpoints/
+
+# mac artifacts
+.DS_Store
+
+# data files
+*.csv
+*.txt
+
+# paths
+scripts/*.sh
+logs/
+data/
+final_data_curation/
+src/data_visualization

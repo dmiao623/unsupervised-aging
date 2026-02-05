@@ -1,0 +1,18 @@
+[project]
+name = "unsupervised-aging"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "h5py>=3.14.0",
+    "marimo>=0.16.2",
+    "matplotlib>=3.10.6",
+    "nbformat>=5.10.4",
+    "numpy>=2.2.6",
+    "pandas>=2.3.2",
+    "param>=2.2.1",
+    "scikit-learn>=1.7.2",
+    "tqdm>=4.67.1",
+    "xgboost>=3.0.5",
+]

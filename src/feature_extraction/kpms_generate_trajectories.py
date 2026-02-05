@@ -1,0 +1,114 @@
+"""Generate trajectory plots and grid movies from a trained KPMS model.
+
+Loads model results and pose coordinates, then produces a syllable
+similarity dendrogram, per-syllable trajectory plots, and grid movies
+using ``keypoint_moseq`` visualization utilities.
+
+SLURM Template:
+    scripts/templates/kpms_generate_trajectories.sh
+
+Usage::
+
+    python kpms_generate_trajectories.py \\
+        --project_name <project_name> \\
+        --model_name <model_name> \\
+        --kpms_dir <path_to_kpms_projects> \\
+        --poses_csv_dir <path_to_pose_csvs>
+"""
+
+import argparse
+from pathlib import Path
+
+import keypoint_moseq as kpms
+from src.methods import load_and_format_data
+
+
+def main(
+    project_name: str,
+    model_name: str,
+    kpms_dir: str,
+    poses_csv_dir: str,
+):
+    """Generate visualizations for a trained KPMS model.
+
+    Loads results and formatted pose coordinates, then produces:
+
+    1. A syllable similarity dendrogram.
+    2. Per-syllable trajectory plots.
+    3. Grid movies of syllable examples.
+
+    Args:
+        project_name: Name of the KPMS project (subdirectory of *kpms_dir*).
+        model_name: Name of the trained model to visualize.
+        kpms_dir: Parent directory containing KPMS project directories.
+        poses_csv_dir: Directory containing pose estimation CSVs. A sibling
+            ``videos/`` directory is expected for grid movie generation.
+    """
+    kpms_dir = Path(kpms_dir)
+    poses_csv_dir = Path(poses_csv_dir)
+    project_dir = kpms_dir / project_name
+
+    print("--- LOADING RESULTS ---")
+    results = kpms.load_results(project_dir, model_name)
+
+    print("--- LOADING DATA ---")
+    config_fn = lambda: kpms.load_config(project_dir)
+    _, _, coordinates = load_and_format_data(poses_csv_dir, project_dir)
+    coordinates = {k: v[..., ::-1] for k, v in coordinates.items()}
+
+    assert len(results) == len(coordinates)
+
+    _tmp = config_fn()
+    _tmp["video_dir"] = poses_csv_dir / "../videos"
+
+    print("--- GENERATING DENDROGRAM ---")
+    kpms.plot_similarity_dendrogram(
+        coordinates, results, project_dir, model_name, **_tmp
+    )
+
+    print("--- GENERATING TRAJECTORY PLOTS ---")
+    kpms.generate_trajectory_plots(
+        coordinates, results, project_dir, model_name, **_tmp
+    )
+
+    print("--- GENERATING GRID MOVIES ---")
+    kpms.generate_grid_movies(
+        results, project_dir, model_name, coordinates=coordinates, **_tmp
+    )
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Generate trajectory plots and grid movies"
+    )
+
+    parser.add_argument(
+        "--project_name",
+        type=str,
+        required=True,
+        help="Name of the keypoint-MoSeq project",
+    )
+    parser.add_argument(
+        "--model_name", type=str, required=True, help="Name of keypoint-MoSeq model"
+    )
+    parser.add_argument(
+        "--kpms_dir",
+        type=str,
+        required=True,
+        help="Path of the keypoint-MoSeq project directory",
+    )
+    parser.add_argument(
+        "--poses_csv_dir",
+        type=str,
+        required=True,
+        help="Directory containing pose CSV files to process",
+    )
+
+    args = parser.parse_args()
+
+    print("\n--- RUN CONFIG ---")
+    for k, v in vars(args).items():
+        print(f"{k:20}: {v}")
+    print("------------------\n")
+
+    main(args.project_name, args.model_name, args.kpms_dir, args.poses_csv_dir)
