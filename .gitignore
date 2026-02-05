@@ -16,3 +16,4 @@ scripts/*.sh
 logs/
 data/
 final_data_curation/
+src/data_visualization
