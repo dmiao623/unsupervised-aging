@@ -1,26 +1,37 @@
-"""Concatenates multiple CSV files into combined datasets.
+"""Concatenate multiple evaluation-result CSV files into one.
 
-This script takes a list of CSV file paths, loads them into pandas DataFrames, 
-and concatenates them into a single DataFrame. It prints informative status 
-messages about each file's number of entries and the total combined size. 
-The resulting concatenated DataFrame is saved as a new CSV file.
+Loads a list of CSV files, concatenates them row-wise into a single
+``DataFrame``, and saves the result to a new CSV. A summary of each
+file's row count and the combined total is printed during execution.
 
-Usage:
-    python concat_dataframes.py \
-        --input_csvs <list_of_csv_paths> \
+Usage::
+
+    python stack_evaluation_results.py \\
+        --input_csvs <csv_1> <csv_2> ... \\
         --output_csv <path_to_output_csv>
 
-Notes:
-    All input CSVs should have compatible column structures for concatenation. 
-    The script outputs a summary of each CSV’s size and the total combined entries.
+Note:
+    All input CSVs should have compatible column structures for
+    concatenation.
 """
 
 import argparse
-import pandas as pd
 import os
+import pandas as pd
 
-def load_and_concatenate(csv_paths):
-    dataframes = []
+from typing import List, Sequence
+
+
+def load_and_concatenate(csv_paths: Sequence[str]) -> pd.DataFrame:
+    """Load CSV files and concatenate them into a single DataFrame.
+
+    Args:
+        csv_paths: Ordered list of CSV file paths to load.
+
+    Returns:
+        A concatenated ``DataFrame`` with a reset integer index.
+    """
+    dataframes: List[pd.DataFrame] = []
     total_rows = 0
     print("\n--- LOADING CSV FILES ---")
     for path in csv_paths:
@@ -33,16 +44,36 @@ def load_and_concatenate(csv_paths):
     print("--------------------------\n")
     return pd.concat(dataframes, ignore_index=True)
 
-def save_dataframe(df, output_path):
+
+def save_dataframe(df: pd.DataFrame, output_path: str):
+    """Write a DataFrame to CSV without the index.
+
+    Args:
+        df: DataFrame to save.
+        output_path: Destination file path.
+    """
     df.to_csv(output_path, index=False)
     print(f"Concatenated CSV saved to '{output_path}' with {len(df)} rows.\n")
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Concatenate multiple CSV files into one.")
-    parser.add_argument("--input_csvs", nargs="+", required=True,
-                        help="List of input CSV file paths to concatenate")
-    parser.add_argument("--output_csv", type=str, required=True,
-                        help="Path to save concatenated output CSV")
+    parser = argparse.ArgumentParser(
+        description="Concatenate multiple evaluation-result CSV files into one.",
+    )
+
+    parser.add_argument(
+        "--input_csvs",
+        nargs="+",
+        required=True,
+        help="List of input CSV file paths to concatenate",
+    )
+    parser.add_argument(
+        "--output_csv",
+        type=str,
+        required=True,
+        help="Path to save concatenated output CSV",
+    )
+
     args = parser.parse_args()
 
     print("\n--- RUN CONFIG ---")

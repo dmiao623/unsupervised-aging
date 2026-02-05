@@ -1,18 +1,23 @@
-"""Script to apply a Keypoint‑MoSeq model for inference.
+"""Apply a trained Keypoint-MoSeq model for inference on new pose data.
 
-This script loads a saved KPMS checkpoint, formats new pose CSV data,
-and writes an HDF5 file with the inference results.
+Loads a saved KPMS checkpoint, formats new pose CSV data, runs inference
+via ``kpms.apply_model``, and writes the results to an HDF5 file.
 
-Usage:
-    python kpms_inference.py \
-        --project_name <project_name> \
-        --model_name <model_name> \
-        --kpms_dir <path_to_kpms_projects> \
-        --poses_csv_dir <path_to_pose_csvs> \
+SLURM Template:
+    scripts/templates/kpms_inference.sh
+
+Usage::
+
+    python kpms_inference.py \\
+        --project_name <project_name> \\
+        --model_name <model_name> \\
+        --kpms_dir <path_to_kpms_projects> \\
+        --poses_csv_dir <path_to_pose_csvs> \\
         --result_path <path_to_output_h5>
 
 Note:
-    Intended for use after training a KPMS model with train_kpms.py.
+    Assumes a KPMS model has already been trained, e.g. via
+    ``kpms_training.py``.
 """
 
 import argparse
@@ -36,6 +41,26 @@ def main(
     poses_csv_dir: str,
     result_path: str,
 ):
+    """Run KPMS inference and write results to an HDF5 file.
+
+    Loads the model checkpoint, formats the input pose data, and applies
+    the model. The output HDF5 file is written to *result_path*.
+
+    Args:
+        project_name: Name of the KPMS project (subdirectory of *kpms_dir*).
+        model_name: Name of the trained model checkpoint to load.
+        kpms_dir: Parent directory containing KPMS project directories.
+        poses_csv_dir: Directory containing pose estimation CSVs for
+            inference.
+        result_path: Output path (including filename) for the HDF5 results
+            file.
+
+    Raises:
+        FileNotFoundError: If the project directory or *poses_csv_dir*
+            does not exist.
+        NotADirectoryError: If the project path exists but is not a
+            directory.
+    """
     kpms_dir = Path(kpms_dir)
     project_dir = kpms_dir / project_name
     poses_csv_dir = Path(poses_csv_dir)
@@ -60,25 +85,51 @@ def main(
     print("\n--- MODEL INFERENCE ---")
     config_fn = lambda: kpms.load_config(str(project_dir))
     result_path.parent.mkdir(parents=True, exist_ok=True)
-    kpms.apply_model(model, data, metadata, str(project_dir), model_name, **config_fn(),
-                     results_path=str(result_path))
+    kpms.apply_model(
+        model,
+        data,
+        metadata,
+        str(project_dir),
+        model_name,
+        **config_fn(),
+        results_path=str(result_path),
+    )
 
     print(f"inference results written to '{result_path}'")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Apply a trained KPMS model to new pose data")
+    parser = argparse.ArgumentParser(
+        description="Apply a trained KPMS model to new pose data"
+    )
 
-    parser.add_argument("--project_name", type=str, required=True,
-                        help="Name of the keypoint-MoSeq project")
-    parser.add_argument("--model_name", type=str, required=True,
-                        help="Name of keypoint-MoSeq model")
-    parser.add_argument("--kpms_dir", type=str, required=True,
-                        help="Path of the keypoint-MoSeq project directory")
-    parser.add_argument("--poses_csv_dir", type=str, required=True,
-                        help="Directory containing pose CSV files to process")
-    parser.add_argument("--result_path", type=str, required=True,
-                        help="Path (including filename) for the output HDF5 file")
+    parser.add_argument(
+        "--project_name",
+        type=str,
+        required=True,
+        help="Name of the keypoint-MoSeq project",
+    )
+    parser.add_argument(
+        "--model_name", type=str, required=True, help="Name of keypoint-MoSeq model"
+    )
+    parser.add_argument(
+        "--kpms_dir",
+        type=str,
+        required=True,
+        help="Path of the keypoint-MoSeq project directory",
+    )
+    parser.add_argument(
+        "--poses_csv_dir",
+        type=str,
+        required=True,
+        help="Directory containing pose CSV files to process",
+    )
+    parser.add_argument(
+        "--result_path",
+        type=str,
+        required=True,
+        help="Path (including filename) for the output HDF5 file",
+    )
 
     args = parser.parse_args()
 
@@ -87,4 +138,10 @@ if __name__ == "__main__":
         print(f"{k:20}: {v}")
     print("------------------\n")
 
-    main(args.project_name, args.model_name, args.kpms_dir, args.poses_csv_dir, args.result_path)
+    main(
+        args.project_name,
+        args.model_name,
+        args.kpms_dir,
+        args.poses_csv_dir,
+        args.result_path,
+    )

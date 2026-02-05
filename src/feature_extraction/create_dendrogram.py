@@ -1,80 +1,97 @@
-import marimo
+"""Compute and plot a syllable similarity dendrogram from KPMS results.
 
-__generated_with = "0.14.10"
-app = marimo.App(width="medium")
+Loads trained model results and pose coordinates, then uses
+``kpms.plot_similarity_dendrogram`` to compute pairwise syllable
+distances and save the resulting dendrogram figure.
 
+Usage::
 
-@app.cell
-def _():
-    import types, param
-    if not hasattr(param, "reactive"):
-        param.reactive = types.SimpleNamespace(rx=param.Parameterized)
-    return
+    python create_dendrogram.py \\
+        --project_name <project_name> \\
+        --model_name <model_name> \\
+        --kpms_dir <path_to_kpms_projects> \\
+        --poses_csv_dir <path_to_pose_csvs>
+"""
 
+import argparse
+from pathlib import Path
 
-@app.cell
-def _():
-    import os
-    import sys
-
-    from pathlib import Path
-
-    import keypoint_moseq as kpms
-    return Path, kpms, os, sys
+import keypoint_moseq as kpms
+from src.methods import load_and_format_data
 
 
-@app.cell
-def _():
-    from keypoint_moseq.util import syllable_similarity
-    return (syllable_similarity,)
+def main(
+    project_name: str,
+    model_name: str,
+    kpms_dir: str,
+    poses_csv_dir: str,
+):
+    """Compute syllable similarity and save a dendrogram plot.
 
+    Loads model results and formatted pose coordinates, computes
+    pairwise syllable distances, and writes the dendrogram figure into
+    the model directory via ``kpms.plot_similarity_dendrogram``.
 
-@app.cell
-def _(os, sys):
-    sys.path.append(os.environ["UNSUPERVISED_AGING"] + "/src/kpms_utils")
-    from src.methods import load_and_format_data
-    return (load_and_format_data,)
-
-
-@app.cell
-def _(Path, os):
-    unsupervised_aging_dir = Path(os.environ["UNSUPERVISED_AGING"])
-
-    project_name  = "2025-07-03_kpms-v2"
-    model_name    = "2025-07-07_model-2"
-    kpms_dir      = unsupervised_aging_dir / "data/kpms_projects"
-    dataset_dir   = unsupervised_aging_dir / "data/datasets/nature-aging_634/"
-    poses_csv_dir = dataset_dir / "poses_csv"
-
+    Args:
+        project_name: Name of the KPMS project (subdirectory of *kpms_dir*).
+        model_name: Name of the trained model.
+        kpms_dir: Parent directory containing KPMS project directories.
+        poses_csv_dir: Directory containing pose estimation CSVs.
+    """
+    kpms_dir = Path(kpms_dir)
+    poses_csv_dir = Path(poses_csv_dir)
     project_dir = kpms_dir / project_name
-    return model_name, poses_csv_dir, project_dir
 
-
-@app.cell
-def _(kpms, model_name, project_dir):
+    print("--- LOADING RESULTS ---")
     results = kpms.load_results(project_dir, model_name)
-    return (results,)
 
-
-@app.cell
-def _(kpms, load_and_format_data, poses_csv_dir, project_dir):
-    config_fn = lambda: kpms.load_config(project_dir)
+    print("--- LOADING DATA ---")
     _, _, coordinates = load_and_format_data(poses_csv_dir, project_dir)
     coordinates = {k: v[..., ::-1] for k, v in coordinates.items()}
-    return (coordinates,)
 
-
-@app.cell
-def _(coordinates, linkage, results, squareform, syllable_similarity):
-    distances, syllable_ixs = syllable_similarity(coordinates, results)
-    Z = linkage(squareform(distances), "complete")
-    return
-
-
-@app.cell
-def _():
-    return
+    print("--- GENERATING DENDROGRAM ---")
+    config = kpms.load_config(project_dir)
+    kpms.plot_similarity_dendrogram(
+        coordinates,
+        results,
+        project_dir,
+        model_name,
+        **config,
+    )
 
 
 if __name__ == "__main__":
-    app.run()
+    parser = argparse.ArgumentParser(
+        description="Compute and plot a syllable similarity dendrogram.",
+    )
+
+    parser.add_argument(
+        "--project_name",
+        type=str,
+        required=True,
+        help="Name of the keypoint-MoSeq project",
+    )
+    parser.add_argument(
+        "--model_name", type=str, required=True, help="Name of keypoint-MoSeq model"
+    )
+    parser.add_argument(
+        "--kpms_dir",
+        type=str,
+        required=True,
+        help="Path of the keypoint-MoSeq project directory",
+    )
+    parser.add_argument(
+        "--poses_csv_dir",
+        type=str,
+        required=True,
+        help="Directory containing pose CSV files",
+    )
+
+    args = parser.parse_args()
+
+    print("\n--- RUN CONFIG ---")
+    for k, v in vars(args).items():
+        print(f"{k:20}: {v}")
+    print("------------------\n")
+
+    main(args.project_name, args.model_name, args.kpms_dir, args.poses_csv_dir)

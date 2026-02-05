@@ -1,3 +1,10 @@
+"""Hierarchical merging of KPMS syllables into meta-syllables.
+
+Marimo notebook that builds transition and usage matrices from syllable
+sequences, applies a greedy agglomerative cost function to produce a
+linkage tree, and visualizes the resulting hierarchy.
+"""
+
 import marimo
 
 __generated_with = "0.14.10"
@@ -7,6 +14,7 @@ app = marimo.App(width="medium")
 @app.cell
 def _():
     import types, param
+
     if not hasattr(param, "reactive"):
         param.reactive = types.SimpleNamespace(rx=param.Parameterized)
     return
@@ -15,6 +23,7 @@ def _():
 @app.cell
 def _():
     import os
+
     os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
     os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
     return (os,)
@@ -33,6 +42,7 @@ def _():
     from typing import Callable, Dict, Set, Tuple, List, Union
 
     import keypoint_moseq as kpms
+
     return Callable, Dict, List, Path, Set, Tuple, Union, kpms, mo, np, nx, plt
 
 
@@ -43,15 +53,19 @@ def _(os):
     sys.path.append(os.environ["UNSUPERVISED_AGING"] + "/src/kpms_utils")
 
     from src.methods import load_and_format_data
+
     return (load_and_format_data,)
 
 
 @app.cell
 def _(Path, os):
-    project_name  = "2025-07-03_kpms-v2"
-    model_name    = "2025-07-07_model-2"
-    kpms_dir      = Path(os.environ["UNSUPERVISED_AGING"]) / "data/kpms_projects"
-    poses_csv_dir = Path(os.environ["UNSUPERVISED_AGING"]) / "data/datasets/nature-aging_634/poses_csv"
+    project_name = "2025-07-03_kpms-v2"
+    model_name = "2025-07-07_model-2"
+    kpms_dir = Path(os.environ["UNSUPERVISED_AGING"]) / "data/kpms_projects"
+    poses_csv_dir = (
+        Path(os.environ["UNSUPERVISED_AGING"])
+        / "data/datasets/nature-aging_634/poses_csv"
+    )
 
     project_dir = kpms_dir / project_name
     return model_name, poses_csv_dir, project_dir
@@ -79,7 +93,7 @@ def _(coordinates, results):
             _rm_key.append(key)
     for key in _rm_key:
         del results[key]
-    len(results), len(coordinates) # should match
+    len(results), len(coordinates)  # should match
     return
 
 
@@ -115,7 +129,7 @@ def _(mo, np, results):
         print("U shape:", U.shape)
         return n, T, U
 
-    n, T, U = build_counts(results, th=0.)
+    n, T, U = build_counts(results, th=0.0)
     return T, U, n
 
 
@@ -124,10 +138,10 @@ def _(Callable, Dict, List, Set, T, Tuple, U, Union, default_cost, n, np):
     CostFunc = Callable[[float, float, float, float], float]
 
     def hierarchical_motif_tree(
-        n: int,                        
+        n: int,
         U: Union[np.ndarray, list, tuple],
         T: Union[np.ndarray, list, tuple],
-        cost_func: CostFunc = None
+        cost_func: CostFunc = None,
     ) -> np.ndarray:
         cost_func = cost_func or default_cost
 
@@ -180,8 +194,12 @@ def _(Callable, Dict, List, Set, T, Tuple, U, Union, default_cost, n, np):
         return np.asarray(linkage_rows, dtype=float)
 
     _eps = 1e-12
-    vame_cost_fn: CostFunc = lambda u_i, u_j, t_ij, t_ji: (u_i + u_j) / (t_ij + t_ji + _eps)
-    alzh_cost_fn: CostFunc = lambda u_i, u_j, t_ij, t_ji: u_i + u_j / (t_ij + t_ji + _eps)
+    vame_cost_fn: CostFunc = lambda u_i, u_j, t_ij, t_ji: (u_i + u_j) / (
+        t_ij + t_ji + _eps
+    )
+    alzh_cost_fn: CostFunc = lambda u_i, u_j, t_ij, t_ji: u_i + u_j / (
+        t_ij + t_ji + _eps
+    )
 
     print(n, U.shape, T.shape)
     linkage = hierarchical_motif_tree(n, U, T, vame_cost_fn)
@@ -214,16 +232,21 @@ def _(
     results,
 ):
     _tmp = config_fn()
-    _tmp["video_dir"] = Path(os.environ["UNSUPERVISED_AGING"]) / "data/datasets/nature-aging_634/videos"
+    _tmp["video_dir"] = (
+        Path(os.environ["UNSUPERVISED_AGING"]) / "data/datasets/nature-aging_634/videos"
+    )
 
     mo.md("trajectory-based syllable dendrogram")
-    kpms.plot_similarity_dendrogram(coordinates, results, project_dir, model_name, **_tmp)
+    kpms.plot_similarity_dendrogram(
+        coordinates, results, project_dir, model_name, **_tmp
+    )
     return
 
 
 @app.cell
 def _(linkage, nx, plt):
     import matplotlib as mpl
+
     mpl.style.use("default")
 
     def linkage_to_nx_tree(Z):

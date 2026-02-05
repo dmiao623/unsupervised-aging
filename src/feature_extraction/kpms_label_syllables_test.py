@@ -1,115 +1,132 @@
-import marimo
+"""Generate KPMS trajectory plots and grid movies with keypoint overlays.
 
-__generated_with = "0.14.10"
-app = marimo.App(width="medium")
+Loads trained model results and pose coordinates, then generates
+per-syllable trajectory plots and grid movies with keypoint overlays
+for visual inspection of syllable assignments.
 
+Usage::
 
-@app.cell
-def _():
-    import types, param
-    if not hasattr(param, "reactive"):
-        param.reactive = types.SimpleNamespace(rx=param.Parameterized)
-    return
+    python kpms_label_syllables_test.py \\
+        --project_name <project_name> \\
+        --model_name <model_name> \\
+        --kpms_dir <path_to_kpms_projects> \\
+        --videos_dir <path_to_videos> \\
+        --poses_csv_dir <path_to_pose_csvs>
+"""
 
+import argparse
+import os
+from pathlib import Path
 
-@app.cell
-def _():
-    import os
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
 
-    from pathlib import Path
-
-    os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-    os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
-    return Path, os
-
-
-@app.cell
-def _(os):
-    import sys
-
-    sys.path.append(os.environ["UNSUPERVISED_AGING"] + "/src/kpms_utils")
-
-    from src.methods import load_and_format_data
-    return (load_and_format_data,)
+import keypoint_moseq as kpms
+from src.methods import load_and_format_data
 
 
-@app.cell
-def _():
-    import keypoint_moseq as kpms
-    return (kpms,)
+def main(
+    project_name: str,
+    model_name: str,
+    kpms_dir: str,
+    videos_dir: str,
+    poses_csv_dir: str,
+):
+    """Generate trajectory plots and grid movies for a KPMS model.
 
+    Loads model results and formatted pose coordinates, then produces
+    per-syllable trajectory plots (without GIFs) and grid movies with
+    keypoint overlays.
 
-@app.cell
-def _(Path, os):
-    project_name  = "2025-07-16_kpms-v3"
-    model_name    = "2025-07-16_model-4"
-    kpms_dir      = Path(os.environ["UNSUPERVISED_AGING"]) / "data/kpms_projects"
-    videos_dir    = Path(os.environ["UNSUPERVISED_AGING"]) / "data/datasets/geroscience_492/videos"
-    poses_csv_dir = Path(os.environ["UNSUPERVISED_AGING"]) / "data/datasets/geroscience_492/poses_csv"
-
+    Args:
+        project_name: Name of the KPMS project (subdirectory of *kpms_dir*).
+        model_name: Name of the trained model.
+        kpms_dir: Parent directory containing KPMS project directories.
+        videos_dir: Directory containing the raw video files.
+        poses_csv_dir: Directory containing pose estimation CSVs.
+    """
+    kpms_dir = Path(kpms_dir)
+    videos_dir = Path(videos_dir)
+    poses_csv_dir = Path(poses_csv_dir)
     project_dir = kpms_dir / project_name
-    return model_name, poses_csv_dir, project_dir, videos_dir
 
-
-@app.cell
-def _(kpms, model_name, project_dir):
-    moseq_df = kpms.compute_moseq_df(project_dir, model_name, smooth_heading=True)
-    moseq_df
-    return
-
-
-@app.cell
-def _(kpms, model_name, project_dir):
+    print("--- LOADING RESULTS ---")
     results = kpms.load_results(project_dir, model_name)
-    return (results,)
 
-
-@app.cell
-def _(kpms, load_and_format_data, poses_csv_dir, project_dir):
-    config_fn = lambda: kpms.load_config(project_dir)
+    print("--- LOADING DATA ---")
     _, _, coordinates = load_and_format_data(poses_csv_dir, project_dir)
     coordinates = {k: v[..., ::-1] for k, v in coordinates.items()}
-    return config_fn, coordinates
 
+    config = kpms.load_config(project_dir)
+    config["video_dir"] = str(videos_dir)
 
-@app.cell
-def _(config_fn, coordinates, kpms, model_name, project_dir, results):
-    kpms.generate_trajectory_plots(coordinates, results, project_dir, model_name, **config_fn(),
-                                   save_gifs=False, save_individually=False, get_limits_pctl=0.5)
-    return
+    print("--- GENERATING TRAJECTORY PLOTS ---")
+    kpms.generate_trajectory_plots(
+        coordinates,
+        results,
+        project_dir,
+        model_name,
+        **config,
+        save_gifs=False,
+        save_individually=False,
+        get_limits_pctl=0.5,
+    )
 
-
-@app.cell
-def _(
-    config_fn,
-    coordinates,
-    kpms,
-    model_name,
-    project_dir,
-    results,
-    videos_dir,
-):
-    _tmp = config_fn()
-    _tmp["video_dir"] = str(videos_dir)
-
-    kpms.generate_grid_movies(results, project_dir, model_name, coordinates=coordinates, **_tmp, overlay_keypoints=True)
-    return
-
-
-@app.cell
-def _(model_name, project_dir):
-    from datetime import datetime
-
-    _today = datetime.today().strftime('%Y-%m-%d')
-    print(f"rsync -avz miaod@login.sumner2.jax.org:{project_dir / model_name}/grid_movies ~/Downloads/{_today}_kpms_grid_movies/")
-    print(f"rsync -avz miaod@login.sumner2.jax.org:{project_dir / model_name}/trajectory_plots ~/Downloads/{_today}_kpms_grid_movies/")
-    return
-
-
-@app.cell
-def _():
-    return
+    print("--- GENERATING GRID MOVIES ---")
+    kpms.generate_grid_movies(
+        results,
+        project_dir,
+        model_name,
+        coordinates=coordinates,
+        **config,
+        overlay_keypoints=True,
+    )
 
 
 if __name__ == "__main__":
-    app.run()
+    parser = argparse.ArgumentParser(
+        description="Generate trajectory plots and grid movies with keypoint overlays.",
+    )
+
+    parser.add_argument(
+        "--project_name",
+        type=str,
+        required=True,
+        help="Name of the keypoint-MoSeq project",
+    )
+    parser.add_argument(
+        "--model_name", type=str, required=True, help="Name of keypoint-MoSeq model"
+    )
+    parser.add_argument(
+        "--kpms_dir",
+        type=str,
+        required=True,
+        help="Path of the keypoint-MoSeq project directory",
+    )
+    parser.add_argument(
+        "--videos_dir",
+        type=str,
+        required=True,
+        help="Path that contains the raw videos",
+    )
+    parser.add_argument(
+        "--poses_csv_dir",
+        type=str,
+        required=True,
+        help="Directory containing pose CSV files",
+    )
+
+    args = parser.parse_args()
+
+    print("\n--- RUN CONFIG ---")
+    for k, v in vars(args).items():
+        print(f"{k:20}: {v}")
+    print("------------------\n")
+
+    main(
+        args.project_name,
+        args.model_name,
+        args.kpms_dir,
+        args.videos_dir,
+        args.poses_csv_dir,
+    )

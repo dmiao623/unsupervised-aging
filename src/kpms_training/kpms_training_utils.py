@@ -1,9 +1,15 @@
+"""Utility functions for Keypoint-MoSeq model training.
+
+Provides the core model-fitting routine used by ``kpms_training.py``.
+"""
+
 from pathlib import Path
 from typing import Any, Callable, Dict, Tuple
 
 import jax
 import keypoint_moseq as kpms
 from src.utils import print_gpu_usage
+
 
 def fit_and_save_model(
     model_name: str,
@@ -18,8 +24,35 @@ def fit_and_save_model(
     kappa: float,
     reduced_kappa: float,
     seed: int,
-) -> Tuple[Any, str, Dict[str, Any]]:
+) -> Tuple[Any, Dict[str, Any]]:
+    """Fit a Keypoint-MoSeq model and save results to disk.
 
+    Performs the full KPMS training pipeline:
+
+    1. Initialize the model with the given PCA and config.
+    2. Fit the AR-HMM with the *kappa* stickiness hyperparameter.
+    3. Fit the full model with the *reduced_kappa* hyperparameter.
+    4. Reindex syllables by frequency.
+    5. Extract and save results as CSV.
+
+    Args:
+        model_name: Identifier for the trained model.
+        data: Formatted pose data as returned by ``load_and_format_data``.
+        metadata: Associated metadata dictionary.
+        pca: Pre-computed PCA object (from ``kpms.io.load_pca``).
+        config_func: Callable that returns the project configuration dict
+            (typically ``lambda: kpms.load_config(project_dir)``).
+        project_path: Path to the KPMS project directory.
+        full_model_iters: Number of full model fitting iterations.
+        arhmm_iters: Number of AR-HMM fitting iterations.
+        kappa: Stickiness hyperparameter for AR-HMM fitting.
+        reduced_kappa: Stickiness hyperparameter for full model fitting.
+        seed: Random seed for model initialization.
+
+    Returns:
+        A tuple of ``(model, results)`` where *model* is the fitted KPMS
+        model object and *results* is a dict of extracted results.
+    """
     model = kpms.init_model(data, pca=pca, **config_func(), seed=seed)
     model = kpms.update_hypparams(model, kappa=kappa)
 
@@ -37,7 +70,6 @@ def fit_and_save_model(
         num_iters=arhmm_iters,
         parallel_message_passing=False,
     )[0]
-
 
     print("\n--- FITTING FULL MODEL ---\n")
     if jax.devices()[0].platform != "cpu":
