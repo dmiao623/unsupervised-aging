@@ -1,4 +1,16 @@
 #!/bin/bash
+# -------------------------------------------------------------------
+# Initialize a new Keypoint-MoSeq project directory.
+#
+# Sets up the project structure, configures bodyparts and skeleton,
+# loads pose data, and runs PCA to select latent dimensionality.
+#
+# Python: src/kpms_training/create_kpms_project.py
+#
+# Placeholders:
+#     {{project_name}} - Name for the new KPMS project
+#     {{dataset}}      - Name of the target dataset directory
+# -------------------------------------------------------------------
 #
 #SBATCH --job-name=create_kpms_project
 #SBATCH --time=1:00:00

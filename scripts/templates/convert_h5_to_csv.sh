@@ -1,4 +1,12 @@
 #!/bin/bash
+# -------------------------------------------------------------------
+# Convert pose-estimation H5 files to CSV for a dataset.
+#
+# Python: src/preprocessing/convert_h5_to_csv.py
+#
+# Placeholders:
+#     {{dataset}} - Name of the target dataset directory
+# -------------------------------------------------------------------
 #
 #SBATCH --job-name=convert_h5_to_csv
 #SBATCH --time=3:00:00

@@ -1,4 +1,17 @@
 #!/bin/bash
+# -------------------------------------------------------------------
+# Generate trajectory plots and grid movies from a trained KPMS model.
+#
+# Produces a syllable similarity dendrogram, per-syllable trajectory
+# plots, and grid movies for visualization.
+#
+# Python: src/feature_extraction/kpms_generate_trajectories.py
+#
+# Placeholders:
+#     {{project_name}}   - Name of the KPMS project
+#     {{model_basename}} - Model name prefix (task ID is appended)
+#     {{dataset}}        - Name of the target dataset directory
+# -------------------------------------------------------------------
 #
 #SBATCH --job-name=kpms_generate_trajectories
 #SBATCH --time=1-00:00:00
@@ -13,9 +26,9 @@
 echo "Start time: $(date)"
 
 PYTHONPATH="${UNSUPERVISED_AGING}/src/kpms_utils" \
-python "${UNSUPERVISED_AGING}/src/model_evaluation/kpms_generate_trajectories.py" \
-    --project_name  "{{project name}}" \
-    --model_name    "{{model basename}}-${SLURM_ARRAY_TASK_ID}" \
+python "${UNSUPERVISED_AGING}/src/feature_extraction/kpms_generate_trajectories.py" \
+    --project_name  "{{project_name}}" \
+    --model_name    "{{model_basename}}-${SLURM_ARRAY_TASK_ID}" \
     --kpms_dir      "${UNSUPERVISED_AGING}/data/kpms_projects/" \
     --poses_csv_dir "${UNSUPERVISED_AGING}/data/datasets/{{dataset}}/poses_csv"
 
