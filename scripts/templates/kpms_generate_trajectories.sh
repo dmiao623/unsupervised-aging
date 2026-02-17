@@ -30,6 +30,7 @@ python "${UNSUPERVISED_AGING}/src/feature_extraction/kpms_generate_trajectories.
     --project_name  "{{project_name}}" \
     --model_name    "{{model_basename}}-${SLURM_ARRAY_TASK_ID}" \
     --kpms_dir      "${UNSUPERVISED_AGING}/data/kpms_projects/" \
-    --poses_csv_dir "${UNSUPERVISED_AGING}/data/datasets/{{dataset}}/poses_csv"
+    --poses_csv_dir "${UNSUPERVISED_AGING}/data/datasets/{{dataset}}/poses_csv" \
+    --trajectory_plots
 
 echo "End time: $(date)"
