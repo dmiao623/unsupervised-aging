@@ -24,6 +24,7 @@ from pathlib import Path
 
 import keypoint_moseq as kpms
 from src.methods import load_and_format_data
+from src.utils import load_keypoints_pd
 
 
 def main(
@@ -34,6 +35,7 @@ def main(
     dendrogram: bool = False,
     trajectory_plots: bool = False,
     grid_movies: bool = False,
+    unsafe_load: bool = False,
 ):
     """Generate visualizations for a trained KPMS model.
 
@@ -53,6 +55,9 @@ def main(
         dendrogram: Generate a syllable similarity dendrogram.
         trajectory_plots: Generate per-syllable trajectory plots.
         grid_movies: Generate grid movies of syllable examples.
+        unsafe_load: Use ``load_keypoints_pd`` instead of
+            ``load_and_format_data`` to load coordinates directly from
+            CSVs, bypassing KPMS formatting and validation.
     """
     kpms_dir = Path(kpms_dir)
     poses_csv_dir = Path(poses_csv_dir)
@@ -63,7 +68,10 @@ def main(
 
     print("--- LOADING DATA ---")
     config_fn = lambda: kpms.load_config(project_dir)
-    _, _, coordinates = load_and_format_data(poses_csv_dir, project_dir)
+    if unsafe_load:
+        coordinates, _ = load_keypoints_pd(str(poses_csv_dir))
+    else:
+        _, _, coordinates, _ = load_and_format_data(poses_csv_dir, project_dir)
 
     shared_keys = set(results.keys()) & set(coordinates.keys())
     if not shared_keys:
@@ -152,6 +160,12 @@ if __name__ == "__main__":
         action="store_true",
         help="Generate grid movies of syllable examples",
     )
+    parser.add_argument(
+        "--unsafe_load",
+        action="store_true",
+        help="Use load_keypoints_pd to load coordinates directly from CSVs, "
+        "bypassing KPMS formatting and validation",
+    )
 
     args = parser.parse_args()
 
@@ -168,4 +182,5 @@ if __name__ == "__main__":
         dendrogram=args.dendrogram,
         trajectory_plots=args.trajectory_plots,
         grid_movies=args.grid_movies,
+        unsafe_load=args.unsafe_load,
     )
