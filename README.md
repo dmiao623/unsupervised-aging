@@ -1,3 +1,9 @@
+> [!WARNING]
+> This repository has been **archived** and certain elements may be out of date.
+> 
+> Please use the official repository instead:
+> [KumarLabJax/B6JDO-KPMS-Pipeline](https://github.com/KumarLabJax/B6JDO-KPMS-Pipeline)
+
 # Unsupervised Aging
 
 An unsupervised behavioral phenotyping pipeline for studying aging in mice using [Keypoint-MoSeq](https://keypoint-moseq.readthedocs.io/) (KPMS). The pipeline processes pose-estimation data from video recordings of Diversity Outbred (DO) and C57BL/6 (B6) mice, learns behavioral syllables via an autoregressive hidden Markov model, and extracts feature matrices for downstream regression analysis of aging and frailty.
